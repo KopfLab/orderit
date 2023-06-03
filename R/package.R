@@ -1,7 +1,8 @@
+#' @keywords internal
+"_PACKAGE"
 
-
-#' test function
-#' @export
-test_function <- function(x = 1:5) {
-  sum(x)
-}
+## usethis namespace: start
+#' @import rlang
+#' @import shiny
+## usethis namespace: end
+NULL
