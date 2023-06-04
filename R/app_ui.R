@@ -14,13 +14,17 @@ ui <- function() {
 
   # sidebar
   sidebar <- shinydashboard::dashboardSidebar(
-    shinydashboard::sidebarUserPanel(textOutput("user_name"), textOutput("user_info")),
+    shinydashboard::sidebarUserPanel(
+      strong(module_data_user_greeting("data")),
+      module_data_app_info("data")),
     shinydashboard::sidebarSearchForm(label = "Quicksearch", "quicksearch_text", "quicksearch_button"),
     shinydashboard::sidebarMenu(
       id = "nav",
       shinydashboard::menuItem("Inventory", tabName = "inventory", icon = icon("dashboard")),
       shinydashboard::menuItem("Orders", tabName = "orders", icon = icon("poo-storm"))
     ),
+    module_data_reload_button("data"),
+    shinytoastr::useToastr(), # enable toaster
     shinyjs::useShinyjs(), # enable shinyjs
     tags$head( # css headers
       tags$style(

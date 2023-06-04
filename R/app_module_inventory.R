@@ -16,7 +16,7 @@ test_module_inventory <- function() {
 }
 
 # inventory server ----
-module_inventory_server <- function(input, output, session) {
+module_inventory_server <- function(input, output, session, data) {
 
 
   # namespace
@@ -27,6 +27,15 @@ module_inventory_server <- function(input, output, session) {
     data = NULL
   )
 
+  # out
+  output$main <- renderUI({
+    validate(need(data$authenticated(), "Authenticating..."))
+    log_info(ns = ns, "rendering inventory UI")
+    tagList(
+      checkboxInput(ns("test_data"), "Use test data", value = FALSE)
+    )
+  })
+
   # use test data ----
   observeEvent(input$test_data, {
     module_message(ns, "debug", "inventory test data button pressed")
@@ -36,15 +45,6 @@ module_inventory_server <- function(input, output, session) {
 
 # inventory user interface ------
 module_inventory_ui <- function(id) {
-
-
-  # namespace
   ns <- NS(id)
-
-  # page
-  fluidPage(
-
-    checkboxInput(ns("test_data"), "Use test data", value = FALSE)
-
-  )
+  uiOutput(ns("main"))
 }

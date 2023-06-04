@@ -3,7 +3,7 @@ server <- function(data_sheet_id, data_folder_id, gs_key_file, user_id) {
 
   shinyServer(function(input, output, session) {
 
-    gui_message("info", "starting orderit GUI")
+    log_info("starting orderit GUI")
 
     # navigation
     observeEvent(input$nav, gui_message("debug", "menu item selected: ", input$nav))
@@ -19,7 +19,8 @@ server <- function(data_sheet_id, data_folder_id, gs_key_file, user_id) {
 
     # inventory module
     inventory <- callModule(
-      module_inventory_server, id = "inventory"
+      module_inventory_server, id = "inventory",
+      data = data
     )
 
     output$user_name <- renderText({
