@@ -6,7 +6,7 @@ server <- function(data_sheet_id, data_folder_id, gs_key_file, user_id) {
     log_info("starting orderit GUI")
 
     # navigation
-    observeEvent(input$nav, gui_message("debug", "menu item selected: ", input$nav))
+    observeEvent(input$nav, log_debug("menu item selected: ", input$nav))
 
     # data module
     data <- callModule(
@@ -23,14 +23,16 @@ server <- function(data_sheet_id, data_folder_id, gs_key_file, user_id) {
       data = data
     )
 
-    output$user_name <- renderText({
-      return(user_id)
-    })
+    # grants module
+    inventory <- callModule(
+      module_grants_server, id = "grants",
+      data = data
+    )
+
     output$users <- renderTable({
       my <- data$get_users_data()
       return(my)
     })
-    output$user_info <- renderText({ "details test" })
 
   })
 

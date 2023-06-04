@@ -18,6 +18,7 @@ Imports:
     shinydashboard,
     shinyjs,
     shinytoastr,
+    DT,
     gargle,
     googledrive,
     googlesheets4,

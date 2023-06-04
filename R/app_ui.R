@@ -21,7 +21,9 @@ ui <- function() {
     shinydashboard::sidebarMenu(
       id = "nav",
       shinydashboard::menuItem("Inventory", tabName = "inventory", icon = icon("dashboard")),
-      shinydashboard::menuItem("Orders", tabName = "orders", icon = icon("poo-storm"))
+      shinydashboard::menuItem("Orders", tabName = "orders", icon = icon("poo-storm")),
+      # FIXME change default
+      shinydashboard::menuItem("Grants", tabName = "grants", icon = icon("sack-dollar"), selected = T)
     ),
     module_data_reload_button("data"),
     shinytoastr::useToastr(), # enable toaster
@@ -34,7 +36,7 @@ ui <- function() {
           ".shiny-output-error-validation { color: red; font-size: 20px; padding: 20px; }", # do we want this red?
           ".shiny-output-error-info { color: black; font-size: 20px; padding: 20px; }",
           # body top padding
-          ".box-body {padding-top: 5px; padding-bottom: 0px}",
+          ".box-body {padding-top: 0px; padding-bottom: 0px}",
           # pads on shiny items
           ".form-group, .selectize-control {margin-bottom: 7px;}", #Padding in input widgets
           ".form-group, .selectize-control {margin-top: 2px;}",
@@ -51,14 +53,16 @@ ui <- function() {
     shinydashboard::tabItems(
       shinydashboard::tabItem(
         "inventory",
-        h4(icon("dashboard"), "Inventory"),
         tableOutput("users"),
-        h1("BIG TEST"),
         module_inventory_ui(id = "inventory")
       ),
       shinydashboard::tabItem(
         "orders",
         h4(icon("poo-storm"), "Orders")
+      ),
+      shinydashboard::tabItem(
+        "grants",
+        module_grants_ui(id = "grants")
       )
     )
   )

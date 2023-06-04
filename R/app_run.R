@@ -54,7 +54,9 @@ start_gui <- function(data_sheet_id, data_folder_id, gs_key_file, user_id, launc
   stopifnot(file.exists(gs_key_file))
 
   # set settings
-  set_pkg_settings(log = log, debug = debug)
+  if (debug) Sys.setenv("LOG_LEVEL" = "DEBUG")
+  else if (log) Sys.setenv("LOG_LEVEL" = "INFO")
+  else Sys.setenv("LOG_LEVEL" = "WARN")
 
   # generate app
   app <- shinyApp(
