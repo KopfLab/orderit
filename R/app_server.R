@@ -30,6 +30,12 @@ server <- function(data_sheet_id, data_folder_id, gs_key_file, timezone, user_id
       data = data
     )
 
+    # show the menu once authenticated
+    observeEvent(data$authenticated(), {
+      shinyjs::show("menu")
+    })
+
+    # FIXME
     output$title <- renderText("Testing it out")
 
   })

@@ -23,6 +23,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
         if (is_dev_mode() && file.exists("local_data.xlsx")) {
           file_path <- "local_data.xlsx"
           log_debug(ns = ns, "in DEV mode, using local data file")
+          Sys.sleep(1)
         } else
           file_path <- download_google_sheet(data_sheet_id, gs_key_file = gs_key_file)
 
@@ -41,14 +42,6 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
         NULL
       })
     return(out)
-  })
-
-  # hide/show sidebar
-  observeEvent(authenticated(), {
-    if (!authenticated())
-      shinyjs::hide("sidebarItemExpanded", asis = TRUE)
-    else
-      shinyjs::show("sidebarItemExpanded", asis = TRUE)
   })
 
   # reload data
@@ -130,11 +123,6 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
   output$user_first_name <- renderText({
     req(get_user())
     get_user()$first_name
-  })
-
-  # test output for app info
-  output$app_info <- renderText({
-    paste("App version ", packageVersion("orderit"))
   })
 
   #  available functions ====

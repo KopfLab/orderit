@@ -17,6 +17,7 @@ Imports:
     shiny,
     shinydashboard,
     shinyjs,
+    shinycssloaders,
     shinytoastr,
     DT,
     gargle,

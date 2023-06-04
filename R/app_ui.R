@@ -2,14 +2,15 @@
 ui <- function(timezone = NULL) {
 
   # constants
-  app_color <- "yellow"
   app_title <- packageName()
   app_title_width <- 150
   app_sidebar_width <- app_title_width
+  app_color <- "yellow"
+  spinner_color <- "#2c3b41"
   app_box_default <- "#2c3b41"
 
   # options
-  options(spinner.color = app_color)
+  options(spinner.color = spinner_color)
 
   # header
   header <- shinydashboard::dashboardHeader(title = module_data_user_first_name("data"), titleWidth = app_title_width)
@@ -17,15 +18,17 @@ ui <- function(timezone = NULL) {
   # sidebar
   sidebar <- shinydashboard::dashboardSidebar(
     width = app_sidebar_width,
-    shinydashboard::sidebarMenu(
-      id = "nav",
-      h5("App version", as.character(packageVersion(packageName())), align = "center"),
-      if (!is.null(timezone)) h5(timezone, align = "center"),
-      shinydashboard::menuItem("Inventory", tabName = "inventory", icon = icon("dashboard")),
-      shinydashboard::menuItem("Orders", tabName = "orders", icon = icon("poo-storm")),
-      # FIXME change default
-      shinydashboard::menuItem("Grants", tabName = "grants", icon = icon("coins"), selected = T)
-    ),
+    div(id = "menu",
+      shinydashboard::sidebarMenu(
+        id = "nav",
+        h5("App version", as.character(packageVersion(packageName())), align = "center"),
+        if (!is.null(timezone)) h5(timezone, align = "center"),
+        shinydashboard::menuItem("Inventory", tabName = "inventory", icon = icon("dashboard")),
+        shinydashboard::menuItem("Orders", tabName = "orders", icon = icon("poo-storm")),
+        # FIXME change default
+        shinydashboard::menuItem("Grants", tabName = "grants", icon = icon("coins"), selected = T)
+      )
+    ) |> shinyjs::hidden(),
     module_data_reload_button("data"),
     shinytoastr::useToastr(), # enable toaster
     shinyjs::useShinyjs(), # enable shinyjs

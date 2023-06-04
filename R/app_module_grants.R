@@ -11,7 +11,7 @@ module_grants_server <- function(input, output, session, data) {
 
   # UI
   output$main <- renderUI({
-    validate(need(data$authenticated(), "Authenticating..."))
+    validate(need(data$authenticated(), "Authentication failed"))
     log_info(ns = ns, "rendering grants UI")
     tagList(
       h2(icon("sack-dollar"), "Grants"),
@@ -62,5 +62,5 @@ module_grants_server <- function(input, output, session, data) {
 # inventory user interface ------
 module_grants_ui <- function(id) {
   ns <- NS(id)
-  uiOutput(ns("main"))
+  uiOutput(ns("main")) |> shinycssloaders::withSpinner()
 }
