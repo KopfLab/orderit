@@ -49,6 +49,7 @@ ui <- function() {
         "inventory",
         h4(icon("dashboard"), "Inventory"),
         tableOutput("users"),
+        h1("BIG TEST"),
         module_inventory_ui(id = "inventory")
       ),
       shinydashboard::tabItem(
