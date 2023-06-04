@@ -19,10 +19,21 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
 
     out <-
       tryCatch({
-        # FIXME
-        #file_path <- "local_data.xlsx"
-        file_path <- download_google_sheet(data_sheet_id, gs_key_file = gs_key_file)
+        # don't download from scratch every time if in development mode
+        if (is_dev_mode() && file.exists("local_data.xlsx")) {
+          file_path <- "local_data.xlsx"
+          log_debug(ns = ns, "in DEV mode, using local data file")
+        } else
+          file_path <- download_google_sheet(data_sheet_id, gs_key_file = gs_key_file)
+
         log_success(ns = ns, "downloaded google spreadsheet data", user_msg = "Data loaded.")
+
+        # save locally if in dev mode
+        if (is_dev_mode() && !file.exists("local_data.xlsx")) {
+          file.copy(file_path, "local_data.xlsx")
+          log_debug(ns = ns, "in DEV mode, saving downloaded data to local file")
+        }
+
         return(file_path)
       },
       error = function(e) {

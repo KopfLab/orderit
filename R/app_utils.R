@@ -7,6 +7,10 @@
   return(out)
 }
 
+is_dev_mode <- function() {
+  return(identical(Sys.getenv("ORDERIT_DEV"), "ON"))
+}
+
 # logging utilities ====
 # note: fatal and trace are overkill for this app
 

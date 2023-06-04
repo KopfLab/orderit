@@ -23,7 +23,7 @@ ui <- function() {
       shinydashboard::menuItem("Inventory", tabName = "inventory", icon = icon("dashboard")),
       shinydashboard::menuItem("Orders", tabName = "orders", icon = icon("poo-storm")),
       # FIXME change default
-      shinydashboard::menuItem("Grants", tabName = "grants", icon = icon("sack-dollar"), selected = T)
+      shinydashboard::menuItem("Grants", tabName = "grants", icon = icon("coins"), selected = T)
     ),
     module_data_reload_button("data"),
     shinytoastr::useToastr(), # enable toaster

@@ -3,7 +3,8 @@ server <- function(data_sheet_id, data_folder_id, gs_key_file, user_id) {
 
   shinyServer(function(input, output, session) {
 
-    log_info("starting orderit GUI")
+    log_info("\n\n========================================================")
+    log_info("starting orderit GUI", if(is_dev_mode()) " in DEV mode")
 
     # navigation
     observeEvent(input$nav, log_debug("menu item selected: ", input$nav))

@@ -6,10 +6,11 @@
 
 guard 'process', name: 'Shiny', command: ['R', '-e', " \
 devtools::load_all('.'); \
+Sys.setenv('ORDERIT_DEV' = 'ON'); \
 data_sheet_id <- readLines('gdrive_file_key.txt')[1]; \
 data_folder_id <- readLines('gdrive_file_key.txt')[2]; \
 gs_key_file <- 'gdrive_access_key.json'; \
-orderit:::start_app(data_sheet_id, data_folder_id, gs_key_file, user_id = 'test', debug = TRUE)"] do
+orderit:::start_app(data_sheet_id, data_folder_id, gs_key_file, user_id = 'test', debug = TRUE, port = 4000)"] do
   watch(%r{NAMESPACE})
   watch(%r{R/.+\.R$})
 end
