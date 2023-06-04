@@ -1,5 +1,5 @@
 # server
-server <- function() {
+server <- function(data_sheet_id, data_folder_id, gs_key_file, user_id) {
 
   shinyServer(function(input, output, session) {
 
@@ -8,14 +8,26 @@ server <- function() {
     # navigation
     observeEvent(input$nav, gui_message("debug", "menu item selected: ", input$nav))
 
+    # data module
+    data <- callModule(
+      module_data_server, id = "data",
+      data_sheet_id = data_sheet_id,
+      data_folder_id = data_folder_id,
+      gs_key_file = gs_key_file,
+      user_id = user_id
+    )
+
     # inventory module
-    inventory <- callModule(module_inventory_server, id = "inventory")
+    inventory <- callModule(
+      module_inventory_server, id = "inventory"
+    )
 
     output$user_name <- renderText({
-      user_id <- Sys.getenv("SHINYPROXY_USERNAME")
-      user_name <- "Anonymous"
-      if (!is.null(user_id)) user_name <- user_id
-      return(user_name)
+      return(user_id)
+    })
+    output$users <- renderTable({
+      my <- data$get_users_data()
+      return(my)
     })
     output$user_info <- renderText({ "details test" })
 
