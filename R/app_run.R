@@ -14,6 +14,7 @@ start_app <- function(data_sheet_id, data_folder_id, gs_key_file, user_id, log =
     launch = TRUE,
     log = log,
     debug = debug,
+    dev = FALSE,
     port = port
   )
 }
@@ -29,13 +30,14 @@ start_app_server <- function(data_sheet_id, data_folder_id, gs_key_file, user_id
     user_id = user_id,
     launch = FALSE,
     log = log,
-    debug = debug
+    debug = debug,
+    dev = FALSE
   )
 }
 
 # start gui
 # @param ... parameters passed on to runApp
-start_gui <- function(data_sheet_id, data_folder_id, gs_key_file, user_id, launch, log, debug, ...) {
+start_gui <- function(data_sheet_id, data_folder_id, gs_key_file, user_id, launch, log, debug, dev, ...) {
 
   # safety check for knitting
   if (isTRUE(getOption('knitr.in.progress'))) {
@@ -51,12 +53,15 @@ start_gui <- function(data_sheet_id, data_folder_id, gs_key_file, user_id, launc
   stopifnot(!missing(launch))
   stopifnot(!missing(log))
   stopifnot(!missing(debug))
+  stopifnot(!missing(dev))
   stopifnot(file.exists(gs_key_file))
 
   # set settings
   if (debug) Sys.setenv("LOG_LEVEL" = "DEBUG")
   else if (log) Sys.setenv("LOG_LEVEL" = "INFO")
   else Sys.setenv("LOG_LEVEL" = "WARN")
+  if (dev) Sys.setenv("ORDERIT_DEV" = "ON")
+  else Sys.setenv("ORDERIT_DEV" = "OFF")
 
   # generate app
   app <- shinyApp(
@@ -75,4 +80,21 @@ start_gui <- function(data_sheet_id, data_folder_id, gs_key_file, user_id, launc
   } else {
     return(app)
   }
+}
+
+# internal function to start app in development mode
+start_app_dev <- function() {
+  stopifnot(file.exists("gdrive_file_key.txt"))
+  stopifnot(file.exists("gdrive_access_key.json"))
+  start_gui(
+    data_sheet_id = readLines("gdrive_file_key.txt")[1],
+    data_folder_id = readLines("gdrive_file_key.txt")[2],
+    gs_key_file = "gdrive_access_key.json",
+    user_id = "dev",
+    launch = TRUE,
+    log = TRUE,
+    debug = TRUE,
+    dev = TRUE,
+    port = 1234
+  )
 }
