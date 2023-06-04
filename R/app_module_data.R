@@ -127,9 +127,9 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
   })
 
   # text output for user info
-  output$user_greeting <- renderText({
+  output$user_first_name <- renderText({
     req(get_user())
-    paste("Welcome ", get_user()$first_name)
+    get_user()$first_name
   })
 
   # test output for app info
@@ -150,12 +150,12 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
 # data ui components ------
 module_data_reload_button <- function(id) {
   ns <- NS(id)
-  actionButton(ns("reload"), "Reload all data", icon = icon("cloud-download-alt"))
+  actionButton(ns("reload"), "Reload", icon = icon("cloud-download-alt"))
 }
 
-module_data_user_greeting <- function(id) {
+module_data_user_first_name <- function(id) {
   ns <- NS(id)
-  textOutput(ns("user_greeting"))
+  textOutput(ns("user_first_name"))
 }
 
 module_data_app_info <- function(id) {

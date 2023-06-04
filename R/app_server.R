@@ -1,5 +1,5 @@
 # server
-server <- function(data_sheet_id, data_folder_id, gs_key_file, user_id) {
+server <- function(data_sheet_id, data_folder_id, gs_key_file, timezone, user_id) {
 
   shinyServer(function(input, output, session) {
 
@@ -30,10 +30,7 @@ server <- function(data_sheet_id, data_folder_id, gs_key_file, user_id) {
       data = data
     )
 
-    output$users <- renderTable({
-      my <- data$get_users_data()
-      return(my)
-    })
+    output$title <- renderText("Testing it out")
 
   })
 

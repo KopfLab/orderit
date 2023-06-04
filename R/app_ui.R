@@ -1,25 +1,26 @@
 # user interface
-ui <- function() {
+ui <- function(timezone = NULL) {
 
   # constants
   app_color <- "yellow"
-  app_title <- "GEOM/CUBES"
+  app_title <- packageName()
+  app_title_width <- 150
+  app_sidebar_width <- app_title_width
   app_box_default <- "#2c3b41"
 
   # options
   options(spinner.color = app_color)
 
   # header
-  header <- shinydashboard::dashboardHeader(title = app_title)
+  header <- shinydashboard::dashboardHeader(title = module_data_user_first_name("data"), titleWidth = app_title_width)
 
   # sidebar
   sidebar <- shinydashboard::dashboardSidebar(
-    shinydashboard::sidebarUserPanel(
-      strong(module_data_user_greeting("data")),
-      module_data_app_info("data")),
-    shinydashboard::sidebarSearchForm(label = "Quicksearch", "quicksearch_text", "quicksearch_button"),
+    width = app_sidebar_width,
     shinydashboard::sidebarMenu(
       id = "nav",
+      h5("App version", as.character(packageVersion(packageName())), align = "center"),
+      if (!is.null(timezone)) h5(timezone, align = "center"),
       shinydashboard::menuItem("Inventory", tabName = "inventory", icon = icon("dashboard")),
       shinydashboard::menuItem("Orders", tabName = "orders", icon = icon("poo-storm")),
       # FIXME change default
