@@ -1,22 +1,31 @@
 # Selector table
 
 #' Selector table server
-#'
-#' This generates an rhandson table for selecting items to include in downstream operations.
-#'
 #' @param get_data reactive context providing the data set
 #' @param id_column name of the ID column - must have unique values!! make a rownumber or concatenated column if there is no unique identifier, this column does NOT have to be part of show_columns (but can be)
 #' @param show_columns list of transmute statements to select columns to show
+#' @param allow_view_all whether to allow the "all" option in the page lengths, default is FALSE
 #' @param page_lengths page length options, first one will be selected
 #' @param initial_page_length initially selected page length, first entry of the page_lengths by default
 #' @param dom the available table control elements and their order
+#' @param filter whether to include column filters - note that this does NOT work for restoring after reload so use with caution if that's a desired feature
+#' @param class styling of table see class parameter for datatable
+#' @param selection see parameter for dat table
 #' @family selector table module functions
 module_selector_table_server <- function(
     input, output, session, get_data,
     id_column,
     show_columns = list(dplyr::across(dplyr::everything(), identity)),
-    page_lengths = list( c(5, 10, 20, -1),  c("5", "10", "20", "All")),
-    initial_page_length = page_lengths[[1]][1], dom = "fltip") {
+    allow_view_all = FALSE,
+    page_lengths = list( c(5, 20, 50, 100, if(allow_view_all) -1),
+                         c("5", "20", "50", "100", if(allow_view_all) "All")),
+    initial_page_length = page_lengths[[1]][1],
+    dom = "fltip",
+    filter = c("none", "bottom", "top"),
+    editable = list(),
+    class = "cell-border stripe hover order-column",
+    selection = c("multiple", "single", "none")
+  ) {
 
   # safety checks
   stopifnot(!missing(get_data))
@@ -34,7 +43,8 @@ module_selector_table_server <- function(
     page_length = initial_page_length, # selected page length
     display_start = 0, # which display page to start on
     search = "", # search term
-    order = list() # ordering information
+    order = list(), # ordering information
+    columns = NULL # column details (including filters)
   )
 
   # create table df =============
@@ -94,15 +104,21 @@ module_selector_table_server <- function(
           DT::datatable(
             data = get_table_df_selected_cols(),
             rownames = FALSE,
+            filter = filter,
+            editable = editable,
+            class = class,
+            selection = selection,
+            autoWidth = TRUE,
             options = list(
-              ordering = values$order,
+              order = values$order,
               pageLength = values$page_length,
               search = list(regex = FALSE, caseInsensitive = TRUE, search = values$search),
               displayStart = values$display_start,
               lengthMenu = page_lengths,
               searchDelay = 100,
               dom = dom,
-              # save state to get ordering and other information
+              #columns= values$columns, # this does not work to restore the search, breaks the table instead
+              # could maybe do it in javascript, ideas here: https://datatables.net/forums/discussion/53287/how-to-reset-values-in-individual-column-searching-text-inputs-at-a-button-click
               stateSave = TRUE,
               # disable the automatic state reload to avoid issues between different table instances
               stateLoadParams = DT::JS("function (settings, data) { return false; }")
@@ -221,8 +237,6 @@ module_selector_table_server <- function(
 
   # save state ========
 
-  # FIXME: somehow the order is not preserved, look into this! ========
-
   # save state
   observeEvent(input$selection_table_state, {
     log_debug(ns = ns, "saving state of selection table")
@@ -230,6 +244,8 @@ module_selector_table_server <- function(
     values$display_start <- input$selection_table_state$start
     values$search <- input$selection_table_state$search$search
     values$order <- input$selection_table_state$order
+    #values$columns <- input$selection_table_state$columns
+    # Note: this doesn't work to restore the search fields
   })
 
   # retrieve data ======
