@@ -10,14 +10,13 @@
 #' @param page_lengths page length options, first one will be selected
 #' @param initial_page_length initially selected page length, first entry of the page_lengths by default
 #' @param dom the available table control elements and their order
-#' @param selector_buttons whether the selector buttons are present
 #' @family selector table module functions
 module_selector_table_server <- function(
     input, output, session, get_data,
     id_column,
     show_columns = list(dplyr::across(dplyr::everything(), identity)),
     page_lengths = list( c(5, 10, 20, -1),  c("5", "10", "20", "All")),
-    initial_page_length = page_lengths[[1]][1], dom = "fltip", selector_buttons = TRUE) {
+    initial_page_length = page_lengths[[1]][1], dom = "fltip") {
 
   # safety checks
   stopifnot(!missing(get_data))
@@ -30,23 +29,21 @@ module_selector_table_server <- function(
   values <- reactiveValues(
     all_ids = c(),
     selected_ids = c(),
-    table = NULL, # what is available
-    selected = c(), # what is selected
-    update_selected = 0, # trigger selection update (circumventing circular triggers with user selection)
+    update_selected = -1L, # trigger selection update (circumventing circular triggers with user selection)
+    selected_cols = c(),
     page_length = initial_page_length, # selected page length
     display_start = 0, # which display page to start on
     search = "", # search term
     order = list() # ordering information
   )
 
-  # render table ========
-  output$selection_table <- DT::renderDataTable({
+  # create table df =============
+  get_table_df <- reactive({
     req(get_data())
     validate(need(has_data(), "No data available"))
-    log_info(ns = ns, "initializing selection table", user_msg = "Loading table")
-
+    log_info(ns = ns, "preparing table df with new data", user_msg = "Loading table")
     # get the table
-    table <-
+    df <-
       tryCatch(
         isolate({
 
@@ -61,11 +58,41 @@ module_selector_table_server <- function(
             as.data.frame()
           rownames(df) <- values$all_ids
 
-          # make sure selection stays the same
-          # update_selected()
+          # select the transmuted cols to begin with
+          isolate({
+            if (length(values$selected_cols) == 0)
+              values$selected_cols <- seq_along(names(df))
+          })
+
+          return(df)
+        }),
+        error = function(e) {
+          # try catch error
+          log_error(ns = ns, user_msg = "Data could not be processed", error = e)
+          return(NULL)
+        })
+
+    # return
+    return(df)
+  })
+
+  get_table_df_selected_cols <- reactive({
+    return(get_table_df()[values$selected_cols])
+  })
+
+  # render data table ========
+  output$selection_table <- DT::renderDataTable({
+    # trigger
+    get_table_df_selected_cols()
+    log_debug(ns = ns, "rendering selection table")
+
+    # get the table
+    table <-
+      tryCatch(
+        isolate({
           # generate data table
           DT::datatable(
-            data = df,
+            data = get_table_df_selected_cols(),
             rownames = FALSE,
             options = list(
               ordering = values$order,
@@ -88,129 +115,191 @@ module_selector_table_server <- function(
           return(NULL)
         })
 
-      # return
+      # wrap up
       validate(need(table, "Data table couldn't be created"))
+      isolate(update_selected()) # make sure selection stays the same
       log_success(ns = ns, "selector table complete", user_msg = "Complete")
       return(table)
-    }
+    },
+    # make sure this is executed server side
+    server = TRUE
   )
-
-  # trigger selection updates
-  update_selected <- function() values$update_selected <- values$update_selected + 1
-  # observeEvent(values$update_selected, {
-  #   log_debug(ns = ns, "updating selections in selection table")
-  #   proxy <- DT::dataTableProxy("selection_table")
-  #   DT::selectRows(proxy, which(get_data()[[id_column]] %in% values$selected))
-  # })
-
-  # save state
-  observeEvent(input$selection_table_state, {
-    # isolate({
-    #   log_debug(ns = ns, "updating state of selection table")
-    #   values$page_length <- input$selection_table_state$length
-    #   values$display_start <- input$selection_table_state$start
-    #   values$search <- input$selection_table_state$search$search
-    #   values$order <- input$selection_table_state$order
-    # })
-  })
 
   # save selection ========
   observeEvent(input$selection_table_rows_selected, {
     req(has_data())
-    selected_indices <- input$selection_table_rows_selected
-    selected_ids <- values$all_ids[selected_indices]
-    if (!identical(selected_ids, values$selected_ids)) {
-      # there were changes
-      values$selected_ids <- selected_ids
-      if (length(selected_indices) > 0L)
-        log_debug(
-          ns = ns, "updating selections to: ",
-          sprintf("#%d = '%s'", selected_indices, selected_ids) |>
-            paste0(collapse = ", ")
-        )
-      else
-        log_debug(ns = ns, "updating selections to nothing selected")
-    }
+    select_rows(indices = input$selection_table_rows_selected)
   }, ignoreNULL = FALSE)
 
-  # selector buttons
-  if (selector_buttons) {
-    # select all that match the current filter
-    observeEvent(input$select_all, {
-      values$selected <- unique(c(values$selected, get_data()[[id_column]][input$selection_table_rows_all]))
-      update_selected()
-    })
-
-    # deselect all
-    observeEvent(input$deselect_all, {
-      values$selected <- c()
-      update_selected()
-    })
-
-    # data available?
-    has_data <- reactive({
-      return(!is.null(get_data()) && nrow(get_data()) > 0L)
-    })
-
-    # button visibility
-    observeEvent(has_data(), {
-      shinyjs::toggle("select_all", condition = has_data())
-      shinyjs::toggle("deselect_all", condition = has_data())
-    })
+  get_id_from_index <- function(indices) {
+    return(values$all_ids[indices])
   }
 
-  # functions
+  get_index_from_id <- function(ids) {
+    return(which(values$all_ids %in% ids))
+  }
+
+  clean_ids <- function(ids) {
+    # only return those not duplicated and actually in the dataset
+    return(get_id_from_index(get_index_from_id(omit_duplicates(ids))))
+  }
+
+  select_rows <- function(ids = get_id_from_index(indices), indices = NULL) {
+    ids <- clean_ids(ids)
+    if (!identical(ids, values$selected_ids)) {
+      # there were actual changes
+      values$selected_ids <- ids
+      if (length(ids) > 0L)
+        log_debug(
+          ns = ns, "saving selections: ",
+          sprintf("#%d = '%s'", get_index_from_id(ids), ids) |> paste0(collapse = ", ")
+        )
+      else
+        log_debug(ns = ns, "saving selections: nothing")
+    }
+  }
+
+  # update selection =========
+  update_selected <- function() values$update_selected <- values$update_selected + 1L
+  observeEvent(values$update_selected, {
+    if (values$update_selected > 0) {
+      log_debug(ns = ns, "updating selections in selection table")
+      proxy <- DT::dataTableProxy("selection_table")
+      DT::selectRows(proxy, get_index_from_id(values$selected_ids))
+    }
+  })
+
+  # select all event ======
+  observeEvent(input$select_all, {
+    select_rows(ids = c(values$selected_ids, get_id_from_index(input$selection_table_rows_all)))
+    update_selected()
+  })
+
+  # deselect all event ======
+  observeEvent(input$deselect_all, {
+    select_rows(c())
+    update_selected()
+  })
+
+  # pick columns event =====
+  observeEvent(input$pick_cols, {
+    req(get_data())
+    dlg <- modalDialog(
+      title = "Show columns",
+      checkboxGroupInput(
+        ns("selected_cols"), label = NULL,
+        choiceNames = names(get_table_df()),
+        choiceValues = seq_along(names(get_table_df())),
+        selected = values$selected_cols
+      ),
+      footer = tagList(
+        actionButton(ns("apply_cols"), "Apply") |>
+          add_tooltip("Switch to showing the selected column(s). Note that if the search is based on a column that is removed, different rows will show."),
+        spaces(1),
+        modalButton("Cancel")
+      )
+    )
+    showModal(dlg)
+  })
+  observeEvent(input$apply_cols, {
+    selected_cols <- as.integer(input$selected_cols)
+    if (!identical(selected_cols, values$selected_cols)) {
+      # got some new columns
+      values$selected_cols <- selected_cols
+      log_info(
+        ns = ns, "selecting table columns: ",
+        sprintf(
+          "%d (%s)",
+          values$selected_cols,
+          names(get_table_df())[values$selected_cols]
+        ) |> paste(collapse = ", "),
+        user_msg = "Switching columns"
+      )
+    }
+    removeModal()
+  })
+
+  # save state ========
+
+  # FIXME: somehow the order is not preserved, look into this! ========
+
+  # save state
+  observeEvent(input$selection_table_state, {
+    log_debug(ns = ns, "saving state of selection table")
+    values$page_length <- input$selection_table_state$length
+    values$display_start <- input$selection_table_state$start
+    values$search <- input$selection_table_state$search$search
+    values$order <- input$selection_table_state$order
+  })
+
+  # retrieve data ======
   has_data <- reactive({
     return(!is.null(get_data()) && nrow(get_data()) > 0L)
   })
 
-  set_selected <- function(selected) {
-    isolate({
-      if (!identical(selected, values$selected) && (length(selected) > 0 || length(values$selected) > 0)) {
-        values$selected <- selected
-        update_selected()
-      }
-    })
-  }
-
-  get_selected <- reactive({
-    # make sure all returned selected are valid
-    if (length(values$selected) == 0) return(c())
-    else return(values$selected[values$selected %in% values$table[[id_column]]])
+  get_selected_ids <- reactive({
+    return(values$selected_ids)
   })
 
   get_selected_items <- reactive({
     # get the actual table items that are selected
-    values$table[values$table[[id_column]] %in% values$selected, ]
+    return(get_data()[get_index_from_id(values$selected_ids),])
+  })
+
+  # enable buttons =====
+  observe({
+    toggle <- has_data() & length(input$selection_table_rows_all) > 0
+    if (isolate(!is.null(input$select_all))) {
+      shinyjs::toggleState("select_all", condition = toggle)
+    }
+  })
+  observe({
+    toggle <- has_data()
+    if (isolate(!is.null(input$deselect_all))) {
+      shinyjs::toggleState("deselect_all", condition = toggle)
+    }
+  })
+  observe({
+    toggle <- has_data() & length(input$selected_cols) > 0
+    if (isolate(!is.null(input$apply_cols))) {
+      shinyjs::toggleState("apply_cols", condition = toggle)
+    }
   })
 
   # return functions
   list(
-    set_selected = set_selected,
-    get_selected = get_selected,
+    select_rows = select_rows,
+    get_selected_ids = get_selected_ids,
     get_selected_items = get_selected_items
   )
 }
 
 
 #' Selector table UI
-#' @family selector table module functions
 module_selector_table_ui <- function(id) {
   ns <- NS(id)
   DT::dataTableOutput(ns("selection_table"))
 }
 
 #' Selector table buttons
-#' @family selector table module functions
 module_selector_table_buttons <- function(id) {
   ns <- NS(id)
   tagList(
-    tooltipInput(actionButton, ns("select_all"), "Select all",
-                 icon = icon("check-square-o", verify_fa = FALSE),
-                 tooltip = "Select all items that match the current search in addition to those already selected."),
+    actionButton(ns("select_all"), "Select all", icon = icon("square-check")) |>
+      add_tooltip("Select all items that match the current search in addition to those already selected."),
     spaces(1),
-    tooltipInput(actionButton, ns("deselect_all"), "Deselect",
-                 icon = icon("square-o", verify_fa = FALSE),
-                 tooltip = "Deselct all items (irrespective of the search).")
+    actionButton(ns("deselect_all"), "Deselect", icon = icon("square")) |>
+      add_tooltip("Deselect all items (even those not visible in the current search)")
   )
 }
+
+#' Selector column selector
+module_selector_table_columns_button <- function(id) {
+  ns <- NS(id)
+  tagList(
+    actionButton(ns("pick_cols"), "Columns", icon = icon("gear")) |>
+      add_tooltip("Pick which columns to show")
+  )
+}
+
+

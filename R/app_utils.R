@@ -11,6 +11,10 @@ is_dev_mode <- function() {
   return(identical(Sys.getenv("ORDERIT_DEV"), "ON"))
 }
 
+omit_duplicates <- function(x) {
+  x[!duplicated(x)]
+}
+
 # logging utilities ====
 # note: fatal and trace are overkill for this app
 
@@ -105,4 +109,9 @@ log_debug <- function(..., ns = NULL) {
 # convenience function for adding spaces (not the most elegant way but works)
 spaces <- function(n) {
   HTML(rep("&nbsp;", n))
+}
+
+# convenience function to add tooltip
+add_tooltip <- function(widget, message, size = "medium") {
+  prompter::add_prompt(widget, message = message, size = size)
 }

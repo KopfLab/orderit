@@ -30,8 +30,9 @@ ui <- function(timezone = NULL) {
       )
     ) |> shinyjs::hidden(),
     module_data_reload_button("data"),
-    shinytoastr::useToastr(), # enable toaster
     shinyjs::useShinyjs(), # enable shinyjs
+    shinytoastr::useToastr(), # enable toaster
+    prompter::use_prompt(), # enable prompter
     tags$head( # css headers
       # custom
       tags$style(
@@ -41,7 +42,7 @@ ui <- function(timezone = NULL) {
           ".shiny-output-error-validation { color: red; font-size: 20px; padding: 20px; }", # do we want this red?
           ".shiny-output-error-info { color: black; font-size: 20px; padding: 20px; }",
           # body top padding
-          ".box-body {padding-top: 0px; padding-bottom: 0px}",
+          ".box-body {padding-top: 5px; padding-bottom: 0px}",
           # pads on shiny items
           ".form-group, .selectize-control {margin-bottom: 7px;}", #Padding in input widgets
           ".form-group, .selectize-control {margin-top: 2px;}",

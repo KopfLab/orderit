@@ -1,6 +1,6 @@
 Package: orderit
 Title: KopfLab Internal Package for Ordering
-Version: 0.1.5
+Version: 0.1.6
 Authors@R: 
     person("Sebastian", "Kopf", , "sebastian.kopf@colorado.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-2044-0201"))
@@ -20,6 +20,7 @@ Imports:
     shinyjs,
     shinycssloaders,
     shinytoastr,
+    prompter,
     DT,
     gargle,
     googledrive,

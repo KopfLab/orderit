@@ -14,8 +14,18 @@ module_grants_server <- function(input, output, session, data) {
     req(data$is_authenticated())
     log_info(ns = ns, "rendering grants UI")
     tagList(
-      h2("Grants"),
-      module_selector_table_ui(ns("grants_table"))
+      shinydashboard::box(
+        title = span(icon("coins"), "Grants"), width = 12,
+        status = "info", solidHeader = TRUE,
+        module_selector_table_ui(ns("grants_table")),
+        footer = div(
+          # tooltipInput(actionButton, ns("device_refresh"), label = "Refresh", icon = icon("sync"), tooltip = "Refresh devices."),
+          module_selector_table_buttons(ns("grants_table")),
+          spaces(1),
+          module_selector_table_columns_button(ns("grants_table"))
+        )
+      )
+
     )
   })
 
@@ -29,8 +39,7 @@ module_grants_server <- function(input, output, session, data) {
       Grant = name, Status = status, `Speed Type` = speed_type,
       `PI` = paste(pi_first_name %then% "", pi_last_name %then% ""),
       `Orderer` = paste(orderer_first_name %then% "", orderer_last_name %then% "")
-    ),
-    selector_buttons = FALSE
+    )
   )
 
 }
