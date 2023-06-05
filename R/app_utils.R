@@ -17,7 +17,7 @@ is_dev_mode <- function() {
 # call the other log functions instead for clarity in the code
 # @param ... toaster parameters
 log_any <- function(msg, log_fun, toaster_fun, ns = NULL, toaster = NULL, ...) {
-  ns <- if(!is.null(ns)) paste0("[NS ", ns(NULL), "] ") else ""
+  ns <- if(!is.null(ns)) paste0("[", ns(NULL), "] ") else ""
   if(!is.null(toaster)) {
     log_fun(paste0(ns, msg, " [GUI msg: '", toaster, "']", collapse = ""))
     toaster_fun(toaster, position = "bottom-right", newestOnTop = TRUE, ...)

@@ -6,131 +6,200 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
   # namespace
   ns <- session$ns
 
-  # values
+  # reactive values =========
   values <- reactiveValues(
-    reload_data = NULL
+    load_data = 1L,
+    file_path = NULL,
+    users_data = NULL,
+    users_hash = NULL,
+    grants_data = NULL,
+    grants_hash = NULL,
+
+
+
+    active_user_data = NULL,
+    active_user_hash = NULL,
+    locked = NULL
   )
 
-  # download data
-  download_data <- reactive({
-    values$reload_data
+  # (re-) load data event =====
+  reload_data <- function() {
+    values$load_data <- values$load_data + 1L
+  }
+  observeEvent(input$reload, reload_data())
 
-    log_info(ns = ns, "requesting google spreadsheet data", user_msg = "Loading data. Please wait.")
+  # download data event =========
+  observeEvent(values$load_data, {
 
-    out <-
+    # lock when this cascade starts
+    lock_app()
+    log_info(ns = ns, "requesting google spreadsheet data", user_msg = "Fetching data")
+    values$file_path <-
       tryCatch({
         # don't download from scratch every time if in development mode
-        if (is_dev_mode() && file.exists("local_data.xlsx")) {
-          file_path <- "local_data.xlsx"
-          log_debug(ns = ns, "in DEV mode, using local data file")
-          Sys.sleep(1)
-        } else
+        # if (is_dev_mode() && file.exists("local_data.xlsx")) {
+        #   file_path <- "local_data.xlsx"
+        #   log_debug(ns = ns, "in DEV mode, using local data file")
+        #   Sys.sleep(1)
+        # } else
           file_path <- download_google_sheet(data_sheet_id, gs_key_file = gs_key_file)
-
-        log_success(ns = ns, "downloaded google spreadsheet data", user_msg = "Data loaded.")
 
         # save locally if in dev mode
         if (is_dev_mode() && !file.exists("local_data.xlsx")) {
           file.copy(file_path, "local_data.xlsx")
           log_debug(ns = ns, "in DEV mode, saving downloaded data to local file")
         }
-
-        return(file_path)
+        file_path
       },
       error = function(e) {
         log_error(ns = ns, "download failed", user_msg = "Data loading error", error = e)
         NULL
       })
-    return(out)
+  }, priority = 1000L)
+
+  # read data event =========
+  observeEvent(values$file_path, {
+    log_debug(ns = ns, "file path: ", values$file_path)
+    log_info(ns = ns, "loading data from xlsx file", user_msg = "Loading data")
+
+    # user data
+    users_data <- read_data("users", cols = c("user_id", "first_name", "last_name", "role"))
+    users_hash <- digest::digest(users_data)
+    if (!identical(users_hash, isolate(values$users_hash))) {
+      log_info(ns = ns, "found new users data")
+      values$users_data <- users_data
+      values$users_hash <- users_hash
+    }
+
+    # grants data
+    grants_data <- read_data("grants",
+      cols = c("grant_id", "name", "status", "speed_type", "pi_user_id", "orderer_user_id"))
+    grants_hash <- digest::digest(grants_data)
+    if (!identical(grants_hash, isolate(values$grants_hash))) {
+      log_info(ns = ns, "found new grants data")
+      values$grants_data <- grants_data
+      values$grants_hash <- grants_hash
+    }
   })
 
-  # reload data
-  reload_data <- function() {
-    values$reload_data <- if(is.null(values$reload_data)) 1L else values$reload_data + 1L
-  }
-  observeEvent(input$reload, reload_data())
-
-  # data read functions
+  # read data utility function
   read_data <- function(sheet, cols = dplyr::everything()) {
-    req(download_data())
-    validate(need(file.exists(download_data()), "something went wrong retrieving the data"))
-    log_info(ns = ns, "reading ", sheet, " data")
-    sheets <- readxl::excel_sheets(download_data())
+    validate(need(file.exists(values$file_path), "something went wrong retrieving the data"))
+    sheets <- readxl::excel_sheets(values$file_path)
+    # check if sheet exists
     if (!sheet %in% sheets) {
       log_error(ns = ns, user_msg = "Cannot read data", error = sprintf("'%s' tab doesn't exist", sheet))
       return(NULL)
     }
-
-    out <-
-      tryCatch({
-        data <- readxl::read_excel(download_data(), sheet = sheet) |>
-          dplyr::select({{ cols }})
-        return(data)
-      },
-      error = function(e) {
-        log_error(ns = ns, "data reading failed", user_msg = "Data missing", error = e)
-        NULL
-      })
-
-    return(out)
+    # try to read data
+    tryCatch({
+      data <- readxl::read_excel(values$file_path, sheet = sheet) |>
+        dplyr::select({{ cols }})
+      return(data)
+    },
+    error = function(e) {
+      log_error(ns = ns, "data reading failed", user_msg = "Data missing", error = e)
+      return(NULL)
+    })
   }
-  get_users_data <- reactive({
-    users <- read_data("users", cols = c("user_id", "first_name", "last_name", "role"))
-    validate(need(users, "something went wrong retrieving the data"))
-    users
-  })
-  get_grants_data <- reactive({
-    grants <- read_data(
-      "grants",
-      cols = c("grant_id", "name", "status", "speed_type",
-               "pi_user_id", "orderer_user_id"))
-    validate(need(grants, "something went wrong retrieving the data"))
 
-    grants |>
-      dplyr::left_join(
-        get_users_data() |> dplyr::rename_with(~paste0("pi_", .x), everything()),
-        by = "pi_user_id"
-      ) |>
-      dplyr::left_join(
-        get_users_data() |> dplyr::rename_with(~paste0("orderer_", .x), everything()),
-        by = "orderer_user_id"
-      )
-  })
-
-  # authentication functions
-  authenticated <- reactive({ !is.null(get_user()) })
-
-  get_user <- reactive({
-    req(get_users_data())
-    log_info(ns = ns, "authenticating ", user_id)
-    out <-
+  # authentication event =====
+  observeEvent(values$users_data, {
+    log_info(ns = ns, "authenticating user by checking users data",
+             user_msg = sprintf("Authenticating '%s'", user_id))
+    active_user_data <-
       tryCatch({
         user <- get_users_data() |>
           dplyr::filter(user_id == !!user_id)
         if(nrow(user) < 1L) cli::cli_abort(paste0("user does not exist: ", user_id))
         if(nrow(user) > 1L) cli::cli_abort(paste0("user_id is not unique: ", user_id))
-        log_success(ns = ns, "login complete", user_msg = "User login complete.")
-        return(user)
+        user
       },
       error = function(e) {
         log_error(ns = ns, "authentication failed", user_msg = "Authentication failed", error = e)
         NULL
       })
-    return(out)
+
+    # check if active user has changed
+    active_user_hash <- digest::digest(active_user_data)
+    if (!identical(active_user_hash, values$active_user_hash)) {
+      log_info(ns = ns, "found new active user data")
+      values$active_user_data <- active_user_data
+      values$active_user_hash <- active_user_hash
+      log_info(ns = ns, "login complete")
+    }
+  })
+
+  is_authenticated <- reactive({ !is.null(values$active_user_data) })
+
+  # final events ====
+  observeEvent(values$locked, {
+    # unlock if authenticated
+    if (is_authenticated() && values$locked) {
+      values$locked <- FALSE
+    } else if (!values$locked) {
+      unlock_app()
+    } else {
+      log_error(ns = ns, "app stays locked")
+    }
+  }, priority = -1000L)
+
+  lock_screen <- modalDialog(
+    title = "Loading data",
+    "This is an important message!"
+  )
+
+  lock_app <- function() {
+    log_info(ns = ns, "locking app")
+    showModal(lock_screen)
+    values$locked <- TRUE
+  }
+
+  unlock_app <- function() {
+    log_info(ns = ns, "unlocking app")
+    shinyjs::show("menu", asis = TRUE)
+    log_success(ns = ns, user_msg = "Complete")
+    removeModal()
+  }
+
+  # data return functions ======
+  get_users_data <- reactive({
+    validate(need(values$users_data, "something went wrong retrieving the data"))
+    return(values$users_data)
+  })
+
+  get_grants_data <- reactive({
+    validate(need(values$grants_data, "something went wrong retrieving the data"))
+    return(
+      values$grants_data |>
+        dplyr::left_join(
+          get_users_data() |> dplyr::rename_with(~paste0("pi_", .x), everything()),
+          by = "pi_user_id"
+        ) |>
+        dplyr::left_join(
+          get_users_data() |> dplyr::rename_with(~paste0("orderer_", .x), everything()),
+          by = "orderer_user_id"
+        )
+    )
+  })
+
+  get_active_user_data <- reactive({
+    validate(need(is_authenticated(), "user not authenticated"))
+    return(values$active_user_data)
   })
 
   # text output for user info
   output$user_first_name <- renderText({
-    req(get_user())
-    get_user()$first_name
+    req(get_active_user_data())
+    get_active_user_data()$first_name
   })
 
   #  available functions ====
   list(
     reload_data = reload_data,
     get_users_data = get_users_data,
-    get_user = get_user,
-    authenticated = authenticated,
+    get_active_user_data = get_active_user_data,
+    is_authenticated = is_authenticated,
     get_grants_data = get_grants_data
   )
 }

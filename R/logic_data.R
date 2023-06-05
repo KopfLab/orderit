@@ -31,8 +31,8 @@ download_google_sheet <- function(gs_id, gs_key_file = "gdrive_access_key.json")
     cli::cli_abort("google authentication failed with the provided key file")
   }
 
-  #op <- options(googledrive_quiet = TRUE)
-  #on.exit(options(op))
+  op <- options(googledrive_quiet = TRUE)
+  on.exit(options(op))
   download_to <- paste0(tempfile(), ".xlsx")
   result <- googledrive::drive_download(googledrive::as_id(gs_id), path = download_to)
   if(!file.exists(download_to))
