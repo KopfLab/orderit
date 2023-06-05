@@ -27,16 +27,43 @@ log_any <- function(msg, log_fun, toaster_fun, ns = NULL, toaster = NULL, ...) {
 }
 
 log_error <- function(..., ns = NULL, user_msg = NULL, error = NULL) {
-  error_msg <- if (!is.null(error)) paste0(": ", cli::ansi_strip(error)) else ""
+
+  error_msg <-
+    if (!is.null(error))
+      gsub("\\n", "<br>", cli::ansi_html(error)) |> paste(collapse = "<br>")
+    else ""
+
+  issue_title <- sprintf(
+    "Error in %s: %s",
+    packageVersion(getPackageName()), user_msg
+  )
+  issue_url <- sprintf(
+    "https://github.com/KopfLab/orderit/issues/new?title=%s&body=%s",
+    URLencode(issue_title), URLencode(HTML(error_msg))
+  )
+
+  error_screen <- modalDialog(
+    title =
+      span(style = "color: red;",
+        h2(user_msg, style = "color: red;"),
+        h4("Please try again. If the issue persists, please",
+           tags$a("report this error", href = issue_url, target = "_blank"),
+        )
+      ),
+    if (nchar(error_msg) > 0) p(style = "color: red;", HTML(error_msg))
+  )
+
   log_any(
-    msg = paste0(..., error_msg, collapse = ""), ns = ns,
+    msg = paste0(..., collapse = ""), ns = ns,
     log_fun = rlog::log_error,
     toaster_fun = shinytoastr::toastr_error,
-    toaster = paste0("Please try again. If the issue persists, report this error", error_msg),
-    title = user_msg,
+    toaster = user_msg,
+    title = "Error",
     timeOut = 10000,
     closeButton = TRUE
   )
+
+  showModal(error_screen)
 }
 
 log_warning <- function(..., ns = NULL, user_msg = NULL, warning = NULL) {

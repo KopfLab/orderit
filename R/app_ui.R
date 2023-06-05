@@ -13,7 +13,7 @@ ui <- function(timezone = NULL) {
   options(spinner.color = spinner_color)
 
   # header
-  header <- shinydashboard::dashboardHeader(title = module_data_user_first_name("data"), titleWidth = app_title_width)
+  header <- shinydashboard::dashboardHeader(title = textOutput("user_first_name"), titleWidth = app_title_width)
 
   # sidebar
   sidebar <- shinydashboard::dashboardSidebar(
@@ -33,6 +33,7 @@ ui <- function(timezone = NULL) {
     shinytoastr::useToastr(), # enable toaster
     shinyjs::useShinyjs(), # enable shinyjs
     tags$head( # css headers
+      # custom
       tags$style(
         type="text/css",
         HTML(paste(

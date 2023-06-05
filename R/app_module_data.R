@@ -19,7 +19,8 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
 
     active_user_data = NULL,
     active_user_hash = NULL,
-    locked = NULL
+    locked = NULL,
+    error = FALSE
   )
 
   # (re-) load data event =====
@@ -37,11 +38,11 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     values$file_path <-
       tryCatch({
         # don't download from scratch every time if in development mode
-        # if (is_dev_mode() && file.exists("local_data.xlsx")) {
-        #   file_path <- "local_data.xlsx"
-        #   log_debug(ns = ns, "in DEV mode, using local data file")
-        #   Sys.sleep(1)
-        # } else
+        if (is_dev_mode() && file.exists("local_data.xlsx")) {
+          file_path <- "local_data.xlsx"
+          log_debug(ns = ns, "in DEV mode, using local data file")
+          Sys.sleep(1)
+        } else
           file_path <- download_google_sheet(data_sheet_id, gs_key_file = gs_key_file)
 
         # save locally if in dev mode
@@ -53,12 +54,14 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
       },
       error = function(e) {
         log_error(ns = ns, "download failed", user_msg = "Data loading error", error = e)
+        values$error <- TRUE
         NULL
       })
   }, priority = 1000L)
 
   # read data event =========
-  observeEvent(values$file_path, {
+  observeEvent(values$load_data, {
+    req(!values$error)
     log_debug(ns = ns, "file path: ", values$file_path)
     log_info(ns = ns, "loading data from xlsx file", user_msg = "Loading data")
 
@@ -84,11 +87,13 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
 
   # read data utility function
   read_data <- function(sheet, cols = dplyr::everything()) {
+    req(!values$error)
     validate(need(file.exists(values$file_path), "something went wrong retrieving the data"))
     sheets <- readxl::excel_sheets(values$file_path)
     # check if sheet exists
     if (!sheet %in% sheets) {
       log_error(ns = ns, user_msg = "Cannot read data", error = sprintf("'%s' tab doesn't exist", sheet))
+      values$error <- TRUE
       return(NULL)
     }
     # try to read data
@@ -98,13 +103,15 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
       return(data)
     },
     error = function(e) {
-      log_error(ns = ns, "data reading failed", user_msg = "Data missing", error = e)
+      log_error(ns = ns, "data reading failed", user_msg = "Missing data", error = e)
+      values$error <- TRUE
       return(NULL)
     })
   }
 
   # authentication event =====
   observeEvent(values$users_data, {
+    req(!values$error)
     log_info(ns = ns, "authenticating user by checking users data",
              user_msg = sprintf("Authenticating '%s'", user_id))
     active_user_data <-
@@ -117,6 +124,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
       },
       error = function(e) {
         log_error(ns = ns, "authentication failed", user_msg = "Authentication failed", error = e)
+        values$error <- TRUE
         NULL
       })
 
@@ -132,43 +140,53 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
 
   is_authenticated <- reactive({ !is.null(values$active_user_data) })
 
-  # final events ====
-  observeEvent(values$locked, {
-    # unlock if authenticated
-    if (is_authenticated() && values$locked) {
-      values$locked <- FALSE
-    } else if (!values$locked) {
-      unlock_app()
-    } else {
-      log_error(ns = ns, "app stays locked")
-    }
-  }, priority = -1000L)
+  # lock/unlock events ====
+  observe({
+    # triggers
+    values$load_data
+    values$locked
+    values$error
 
-  lock_screen <- modalDialog(
-    title = "Loading data",
-    "This is an important message!"
-  )
+    # unlock if authenticated
+    isolate({
+      if (is_authenticated() && values$locked && !values$error) {
+        values$locked <- FALSE
+      } else if (!values$locked) {
+        unlock_app()
+      } else {
+        # reset
+        values$users_data <- NULL
+        values$users_hash <- NULL
+        values$grants_data <- NULL
+        values$grants_hash <- NULL
+        values$active_user_data <- NULL
+        values$active_user_hash <- NULL
+        shinyjs::hide("menu", asis = TRUE)
+        log_info(ns = ns, "app stays locked")
+      }
+    })
+  }, priority = -1000L)
 
   lock_app <- function() {
     log_info(ns = ns, "locking app")
-    showModal(lock_screen)
     values$locked <- TRUE
+    values$error <- FALSE
   }
 
   unlock_app <- function() {
     log_info(ns = ns, "unlocking app")
     shinyjs::show("menu", asis = TRUE)
-    log_success(ns = ns, user_msg = "Complete")
-    removeModal()
+    log_success(ns = ns, "loading all done", user_msg = "Complete")
   }
 
-  # data return functions ======
+  # data functions ======
   get_users_data <- reactive({
     validate(need(values$users_data, "something went wrong retrieving the data"))
     return(values$users_data)
   })
 
   get_grants_data <- reactive({
+    log_debug(ns = ns, "retrieving grants data")
     validate(need(values$grants_data, "something went wrong retrieving the data"))
     return(
       values$grants_data |>
@@ -188,34 +206,18 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     return(values$active_user_data)
   })
 
-  # text output for user info
-  output$user_first_name <- renderText({
-    req(get_active_user_data())
-    get_active_user_data()$first_name
-  })
-
-  #  available functions ====
+  #  return function ====
   list(
     reload_data = reload_data,
+    is_authenticated = is_authenticated,
     get_users_data = get_users_data,
     get_active_user_data = get_active_user_data,
-    is_authenticated = is_authenticated,
     get_grants_data = get_grants_data
   )
 }
 
-# data ui components ------
+# data ui components - reload button ------
 module_data_reload_button <- function(id) {
   ns <- NS(id)
   actionButton(ns("reload"), "Reload", icon = icon("cloud-download-alt"))
-}
-
-module_data_user_first_name <- function(id) {
-  ns <- NS(id)
-  textOutput(ns("user_first_name"))
-}
-
-module_data_app_info <- function(id) {
-  ns <- NS(id)
-  textOutput(ns("app_info"))
 }

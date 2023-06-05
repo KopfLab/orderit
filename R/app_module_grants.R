@@ -11,27 +11,27 @@ module_grants_server <- function(input, output, session, data) {
 
   # UI =====================
   output$main <- renderUI({
-    validate(need(data$authenticated(), "Authentication failed"))
+    req(data$is_authenticated())
     log_info(ns = ns, "rendering grants UI")
     tagList(
       h2("Grants"),
-      module_selector_table_ui(ns("grants"))
+      module_selector_table_ui(ns("grants_table"))
     )
   })
 
   # grants table ==============
-  # grants <- callModule(
-  #   module_selector_table_server,
-  #   "grants",
-  #   get_data = data$get_grants_data,
-  #   id_column = "grant_id",
-  #   show_columns = list(
-  #     Grant = name, Status = status, `Speed Type` = speed_type,
-  #     `PI` = paste(pi_first_name %then% "", pi_last_name %then% ""),
-  #     `Orderer` = paste(orderer_first_name %then% "", orderer_last_name %then% "")
-  #   ),
-  #   selector_buttons = FALSE
-  # )
+  grants <- callModule(
+    module_selector_table_server,
+    "grants_table",
+    get_data = data$get_grants_data,
+    id_column = "grant_id",
+    show_columns = list(
+      Grant = name, Status = status, `Speed Type` = speed_type,
+      `PI` = paste(pi_first_name %then% "", pi_last_name %then% ""),
+      `Orderer` = paste(orderer_first_name %then% "", orderer_last_name %then% "")
+    ),
+    selector_buttons = FALSE
+  )
 
 }
 

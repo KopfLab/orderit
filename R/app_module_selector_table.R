@@ -42,8 +42,8 @@ module_selector_table_server <- function(
   # render table ========
   output$selection_table <- DT::renderDataTable({
     req(get_data())
-    validate(need(has_data(), "No data available."))
-    log_debug(ns = ns, "initializing selection table")
+    validate(need(has_data(), "No data available"))
+    log_info(ns = ns, "initializing selection table", user_msg = "Loading table")
 
     # get the table
     table <-
@@ -84,12 +84,13 @@ module_selector_table_server <- function(
         }),
         error = function(e) {
           # try catch error
-          log_error(ns = ns, user_msg = "Something went wrong", error = e)
+          log_error(ns = ns, user_msg = "Data table couldn't be created", error = e)
           return(NULL)
         })
 
       # return
-      validate(need(table, "Something went wrong."))
+      validate(need(table, "Data table couldn't be created"))
+      log_success(ns = ns, "selector table complete", user_msg = "Complete")
       return(table)
     }
   )

@@ -9,6 +9,12 @@ server <- function(data_sheet_id, data_folder_id, gs_key_file, timezone, user_id
     # navigation
     observeEvent(input$nav, log_debug("menu item selected: ", input$nav))
 
+    # user info
+    output$user_first_name <- renderText({
+      req(data$is_authenticated())
+      data$get_active_user_data()$first_name
+    })
+
     # data module
     data <- callModule(
       module_data_server, id = "data",
@@ -24,11 +30,11 @@ server <- function(data_sheet_id, data_folder_id, gs_key_file, timezone, user_id
     #   data = data
     # )
 
-    # # grants module
-    # inventory <- callModule(
-    #   module_grants_server, id = "grants",
-    #   data = data
-    # )
+    # grants module
+    grants <- callModule(
+      module_grants_server, id = "grants",
+      data = data
+    )
 
   })
 
