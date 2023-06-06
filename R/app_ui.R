@@ -23,10 +23,10 @@ ui <- function(timezone = NULL) {
         id = "nav",
         h5("App version", as.character(packageVersion(packageName())), align = "center"),
         if (!is.null(timezone)) h5(timezone, align = "center"),
-        shinydashboard::menuItem("Inventory", tabName = "inventory", icon = icon("dashboard")),
+        shinydashboard::menuItem("Inventory", tabName = "inventory", icon = icon("flask-vial"), selected = T),
         shinydashboard::menuItem("Orders", tabName = "orders", icon = icon("poo-storm")),
         # FIXME change default
-        shinydashboard::menuItem("Grants", tabName = "grants", icon = icon("coins"), selected = T)
+        shinydashboard::menuItem("Grants", tabName = "grants", icon = icon("coins"))
       )
     ) |> shinyjs::hidden(),
     module_data_reload_button("data"),

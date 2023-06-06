@@ -24,15 +24,15 @@ server <- function(data_sheet_id, data_folder_id, gs_key_file, timezone, user_id
       user_id = user_id
     )
 
-    # # inventory module
-    # inventory <- callModule(
-    #   module_inventory_server, id = "inventory",
-    #   data = data
-    # )
-
     # grants module
     grants <- callModule(
       module_grants_server, id = "grants",
+      data = data
+    )
+
+    # inventory module
+    inventory <- callModule(
+      module_inventory_server, id = "inventory",
       data = data
     )
 

@@ -10,21 +10,24 @@
 #' @param dom the available table control elements and their order
 #' @param filter whether to include column filters - note that this does NOT work for restoring after reload so use with caution if that's a desired feature
 #' @param class styling of table see class parameter for datatable
-#' @param selection see parameter for dat table
-#' @family selector table module functions
+#' @param selection see parameter for data table (none, single, multiple)
+#' @param render_html list of columns which should NOT be html escaped (e.g. for links)
+#' @param formatting_calls list of lists with function e.g. list(list(func = formatCurrency, columns = "x))
 module_selector_table_server <- function(
     input, output, session, get_data,
     id_column,
     show_columns = list(dplyr::across(dplyr::everything(), identity)),
     allow_view_all = FALSE,
-    page_lengths = list( c(5, 20, 50, 100, if(allow_view_all) -1),
-                         c("5", "20", "50", "100", if(allow_view_all) "All")),
+    page_lengths = list( c(5, 10, 20, 50, 100, if(allow_view_all) -1),
+                         c("5", 10, "20", "50", "100", if(allow_view_all) "All")),
     initial_page_length = page_lengths[[1]][1],
     dom = "fltip",
     filter = c("none", "bottom", "top"),
-    editable = list(),
     class = "cell-border stripe hover order-column",
-    selection = c("multiple", "single", "none")
+    selection = c("multiple", "single", "none"),
+    render_html = c(),
+    formatting_calls = list()
+    # note: considered allowing editable option but it doesn't work so well for select tables
   ) {
 
   # safety checks
@@ -101,20 +104,20 @@ module_selector_table_server <- function(
       tryCatch(
         isolate({
           # generate data table
-          DT::datatable(
+          table <- DT::datatable(
             data = get_table_df_selected_cols(),
             rownames = FALSE,
             filter = filter,
-            editable = editable,
             class = class,
             selection = selection,
-            autoWidth = TRUE,
+            escape = setdiff(names(get_table_df_selected_cols()), render_html),
             options = list(
               order = values$order,
               pageLength = values$page_length,
               search = list(regex = FALSE, caseInsensitive = TRUE, search = values$search),
               displayStart = values$display_start,
               lengthMenu = page_lengths,
+              autoWidth = TRUE, # not actually this does anything
               searchDelay = 100,
               dom = dom,
               #columns= values$columns, # this does not work to restore the search, breaks the table instead
@@ -124,6 +127,30 @@ module_selector_table_server <- function(
               stateLoadParams = DT::JS("function (settings, data) { return false; }")
             )
           )
+
+          # formatting calls
+          if (length(formatting_calls) > 0) {
+            for (i in seq_along(formatting_calls)) {
+              if(names(formatting_calls[[i]])[1] != "func")
+                cli::cli_abort("trying to apply formatting call without first argument being 'func'")
+              if(names(formatting_calls[[i]])[2] != "columns")
+                cli::cli_abort("trying to apply formatting call without second argument being 'columns'")
+              existing_cols <- intersect(formatting_calls[[i]]$columns, names(get_table_df_selected_cols()))
+              if (length(existing_cols) > 0) {
+                # run the renderer
+                table <- do.call(
+                  formatting_calls[[i]]$func,
+                  args = c(
+                    list(table = table, columns = existing_cols),
+                    formatting_calls[[i]][-c(1:2)]
+                  )
+                )
+              }
+            }
+          }
+
+          # return table
+          table
         }),
         error = function(e) {
           # try catch error

@@ -9,25 +9,57 @@ module_inventory_server <- function(input, output, session, data) {
     data = NULL
   )
 
-  # out
+  # UI =====================
   output$main <- renderUI({
-    validate(need(data$authenticated(), "Authenticating..."))
+    req(data$is_authenticated())
     log_info(ns = ns, "rendering inventory UI")
     tagList(
-      h4(icon("dashboard"), "Inventory"),
-      checkboxInput(ns("test_data"), "Use test data", value = FALSE)
+      shinydashboard::box(
+        title = span(icon("flask-vial"), "Inventory"), width = 12,
+        status = "info", solidHeader = TRUE,
+        module_selector_table_ui(ns("inventory_table")),
+        footer = div(
+          module_selector_table_buttons(ns("inventory_table")),
+          spaces(1),
+          module_selector_table_columns_button(ns("inventory_table"))
+        )
+      )
+
     )
   })
 
-  # use test data ----
-  observeEvent(input$test_data, {
-    log_debug(ns = ns, "inventory test data button pressed")
-  })
+  # inventory table ==============
+  inventory <- callModule(
+    module_selector_table_server,
+    "inventory_table",
+    get_data = data$get_inventory_data,
+    id_column = "item_id",
+    show_columns = list(
+      Item = ifelse(
+        !is.na(url) & nchar(url) > 0,
+        sprintf("<a href = '%s' target = '_blank'>%s</a>", url, htmltools::htmlEscape(name)),
+        htmltools::htmlEscape(name)
+      ),
+      Vendor = factor(vendor),
+      `Catalog #` = catalog_nr,
+      `Unit price` = price,
+      `Unit size` = unit_size,
+      `Notes` = notes
+    ),
+    allow_view_all = FALSE,
+    initial_page_length = 10,
+    filter = "top",
+    selection = "multiple",
+    render_html = "Item",
+    formatting_calls = list(
+      list(func = DT::formatCurrency, columns = "Unit price")
+    )
+  )
 
 }
 
 # inventory user interface ------
 module_inventory_ui <- function(id) {
   ns <- NS(id)
-  uiOutput(ns("main"))
+  uiOutput(ns("main")) |> shinycssloaders::withSpinner()
 }

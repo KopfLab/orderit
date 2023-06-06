@@ -15,6 +15,16 @@ omit_duplicates <- function(x) {
   x[!duplicated(x)]
 }
 
+# helper function to create factors with levels in the order of data appearnace
+# this is a simpler implementation of forcats::fct_inorder (no other need for forcats dependency)
+factor_in_order <- function(x) {
+  if (!is.factor(x)) x <- as.factor(x)
+  idx <- as.integer(x)[!duplicated(x)]
+  idx <- idx[!is.na(idx)]
+  return(factor(x, levels = levels(x)[idx]))
+}
+
+
 # logging utilities ====
 # note: fatal and trace are overkill for this app
 
@@ -58,7 +68,7 @@ log_error <- function(..., ns = NULL, user_msg = NULL, error = NULL) {
   )
 
   log_any(
-    msg = paste0(..., collapse = ""), ns = ns,
+    msg = paste0(..., if(!is.null(error)) paste0(": ", error$message), collapse = ""), ns = ns,
     log_fun = rlog::log_error,
     toaster_fun = shinytoastr::toastr_error,
     toaster = user_msg,

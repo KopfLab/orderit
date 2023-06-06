@@ -82,6 +82,17 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
       values$grants_data <- grants_data
       values$grants_hash <- grants_hash
     }
+
+    # inventory data
+    inventory_data <- read_data(
+      "inventory",
+      cols = c("item_id", "name", "vendor", "catalog_nr", "price", "unit_size", "notes", "url"))
+    inventory_hash <- digest::digest(inventory_data)
+    if (!identical(inventory_hash, isolate(values$inventory_hash))) {
+      log_info(ns = ns, "found new inventory data")
+      values$inventory_data <- inventory_data
+      values$inventory_hash <- inventory_hash
+    }
   })
 
   # read data utility function
@@ -200,6 +211,11 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     )
   })
 
+  get_inventory_data <- reactive({
+    validate(need(values$inventory_data, "something went wrong retrieving the data"))
+    return(values$inventory_data |> dplyr::arrange(name))
+  })
+
   get_active_user_data <- reactive({
     validate(need(is_authenticated(), "user not authenticated"))
     return(values$active_user_data)
@@ -211,7 +227,8 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     is_authenticated = is_authenticated,
     get_users_data = get_users_data,
     get_active_user_data = get_active_user_data,
-    get_grants_data = get_grants_data
+    get_grants_data = get_grants_data,
+    get_inventory_data = get_inventory_data
   )
 }
 
