@@ -1,13 +1,8 @@
-# inventory server ----
+# grants server ----
 module_grants_server <- function(input, output, session, data) {
 
   # namespace
   ns <- session$ns
-
-  # values
-  values <- reactiveValues(
-    data = NULL
-  )
 
   # UI =====================
   output$main <- renderUI({
@@ -19,9 +14,6 @@ module_grants_server <- function(input, output, session, data) {
         status = "info", solidHeader = TRUE,
         module_selector_table_ui(ns("grants_table")),
         footer = div(
-          # tooltipInput(actionButton, ns("device_refresh"), label = "Refresh", icon = icon("sync"), tooltip = "Refresh devices."),
-          module_selector_table_buttons(ns("grants_table")),
-          spaces(1),
           module_selector_table_columns_button(ns("grants_table"))
         )
       )
@@ -37,9 +29,12 @@ module_grants_server <- function(input, output, session, data) {
     id_column = "grant_id",
     show_columns = list(
       Grant = name, Status = status, `Speed Type` = speed_type,
-      `PI` = paste(pi_first_name %then% "", pi_last_name %then% ""),
+      URL = "<a href = 'https://labapps.kopflab.org' target = '_blank'>link</a>",
       `Orderer` = paste(orderer_first_name %then% "", orderer_last_name %then% "")
-    )
+    ),
+    allow_view_all = TRUE,
+    initial_page_length = -1,
+    selection = "none"
   )
 
 }
