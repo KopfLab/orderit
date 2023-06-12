@@ -26,7 +26,7 @@ ui <- function(timezone = NULL) {
         shinydashboard::menuItem("Inventory", tabName = "inventory", icon = icon("flask-vial"), selected = T),
         shinydashboard::menuItem("Orders", tabName = "orders", icon = icon("poo-storm")),
         # FIXME change default
-        shinydashboard::menuItem("Grants", tabName = "grants", icon = icon("coins"))
+        shinydashboard::menuItem("Grants", tabName = "grants", icon = icon("coins"), selected = TRUE)
       )
     ) |> shinyjs::hidden(),
     module_data_reload_button("data"),

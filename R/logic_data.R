@@ -14,13 +14,13 @@ download_google_sheet <- function(gs_id, gs_key_file = "gdrive_access_key.json")
       )
     ),
     error = function(e) {
-      cli::cli_abort(paste0("google authentication failed: ", e$message))
+      abort(paste0("google authentication failed"), parent = e)
     }
   )
 
   # check token
   if (is.null(token_obj))
-    cli::cli_abort("google authentication failed with the provided key file")
+    abort("google authentication failed with the provided key file")
 
   googledrive::drive_auth(token = token_obj)
 
@@ -28,7 +28,7 @@ download_google_sheet <- function(gs_id, gs_key_file = "gdrive_access_key.json")
   if (
     !(googledrive::drive_has_token() && identical(googledrive::drive_token()$auth_token$hash(), token_obj$hash()))
   )  {
-    cli::cli_abort("google authentication failed with the provided key file")
+    abort("google authentication failed with the provided key file")
   }
 
   op <- options(googledrive_quiet = TRUE)
@@ -36,7 +36,7 @@ download_google_sheet <- function(gs_id, gs_key_file = "gdrive_access_key.json")
   download_to <- paste0(tempfile(), ".xlsx")
   result <- googledrive::drive_download(googledrive::as_id(gs_id), path = download_to)
   if(!file.exists(download_to))
-    cli::cli_abort("google sheet download failed")
+    abort("google sheet download failed")
 
   return(download_to)
 }

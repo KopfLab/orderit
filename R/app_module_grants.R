@@ -29,7 +29,7 @@ module_grants_server <- function(input, output, session, data) {
     id_column = "grant_id",
     show_columns = list(
       Grant = name, Status = status, `Speed Type` = speed_type,
-      URL = "<a href = 'https://labapps.kopflab.org' target = '_blank'>link</a>",
+      `PI` = paste(pi_first_name %then% "", pi_last_name %then% ""),
       `Orderer` = paste(orderer_first_name %then% "", orderer_last_name %then% "")
     ),
     allow_view_all = TRUE,

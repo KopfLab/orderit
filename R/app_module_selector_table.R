@@ -62,7 +62,7 @@ module_selector_table_server <- function(
 
           # id values
           values$all_ids <- get_data()[[id_column]]
-          if(any(duplicated(values$all_ids))) cli::cli_abort("found duplicate IDs in data table")
+          if(any(duplicated(values$all_ids))) abort("found duplicate IDs in data table")
 
           # table df
           transmute_cols <- rlang::call_args(rlang::enquo(show_columns))
@@ -132,9 +132,9 @@ module_selector_table_server <- function(
           if (length(formatting_calls) > 0) {
             for (i in seq_along(formatting_calls)) {
               if(names(formatting_calls[[i]])[1] != "func")
-                cli::cli_abort("trying to apply formatting call without first argument being 'func'")
+                abort("trying to apply formatting call without first argument being 'func'")
               if(names(formatting_calls[[i]])[2] != "columns")
-                cli::cli_abort("trying to apply formatting call without second argument being 'columns'")
+                abort("trying to apply formatting call without second argument being 'columns'")
               existing_cols <- intersect(formatting_calls[[i]]$columns, names(get_table_df_selected_cols()))
               if (length(existing_cols) > 0) {
                 # run the renderer
