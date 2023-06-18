@@ -2,8 +2,9 @@
 
 #' Selector table server
 #' @param get_data reactive context providing the data set
-#' @param id_column name of the ID column - must have unique values!! make a rownumber or concatenated column if there is no unique identifier, this column does NOT have to be part of show_columns (but can be)
-#' @param show_columns list of transmute statements to select columns to show
+#' @param id_column name of the ID column - must have unique values!! make a rownumber or concatenated column if there is no unique identifier, this column does NOT have to be part of available_columns (but can be)
+#' @param available_columns list of transmute statements to select columns to show
+#' @param visible_columns integer vector of columns (from what the available_columns selects) that are visible when the table loads (can be changed with the table_columns_button action) - if empty, all columns are visible
 #' @param allow_view_all whether to allow the "all" option in the page lengths, default is FALSE
 #' @param page_lengths page length options, first one will be selected
 #' @param initial_page_length initially selected page length, first entry of the page_lengths by default
@@ -16,7 +17,8 @@
 module_selector_table_server <- function(
     input, output, session, get_data,
     id_column,
-    show_columns = list(dplyr::across(dplyr::everything(), identity)),
+    available_columns = list(dplyr::across(dplyr::everything(), identity)),
+    visible_columns = c(),
     allow_view_all = FALSE,
     page_lengths = list( c(5, 10, 20, 50, 100, if(allow_view_all) -1),
                          c("5", 10, "20", "50", "100", if(allow_view_all) "All")),
@@ -42,12 +44,12 @@ module_selector_table_server <- function(
     all_ids = c(),
     selected_ids = c(),
     update_selected = -1L, # trigger selection update (circumventing circular triggers with user selection)
-    selected_cols = c(),
+    selected_cols = visible_columns,
     page_length = initial_page_length, # selected page length
     display_start = 0, # which display page to start on
     search = "", # search term
     order = list(), # ordering information
-    columns = NULL # column details (including filters)
+    filter = match.arg(filter) # filter setting
   )
 
   # create table df =============
@@ -65,7 +67,7 @@ module_selector_table_server <- function(
           if(any(duplicated(values$all_ids))) abort("found duplicate IDs in data table")
 
           # table df
-          transmute_cols <- rlang::call_args(rlang::enquo(show_columns))
+          transmute_cols <- rlang::call_args(rlang::enquo(available_columns))
           df <- get_data() |>
             dplyr::transmute(!!!transmute_cols) |>
             as.data.frame()
@@ -95,8 +97,9 @@ module_selector_table_server <- function(
 
   # render data table ========
   output$selection_table <- DT::renderDataTable({
-    # trigger
+    # triggers
     get_table_df_selected_cols()
+    values$filter
     log_debug(ns = ns, "rendering selection table")
 
     # get the table
@@ -107,7 +110,7 @@ module_selector_table_server <- function(
           table <- DT::datatable(
             data = get_table_df_selected_cols(),
             rownames = FALSE,
-            filter = filter,
+            filter = values$filter,
             class = class,
             selection = selection,
             escape = setdiff(names(get_table_df_selected_cols()), render_html),
@@ -229,6 +232,7 @@ module_selector_table_server <- function(
     req(get_data())
     dlg <- modalDialog(
       title = "Show columns",
+      easyClose = TRUE,
       checkboxGroupInput(
         ns("selected_cols"), label = NULL,
         choiceNames = names(get_table_df()),
@@ -260,6 +264,17 @@ module_selector_table_server <- function(
       )
     }
     removeModal()
+  })
+
+  # toggle column search event =====
+  observeEvent(input$col_search, {
+    if (identical(values$filter, "none")) {
+      log_info(ns = ns, "enabling top filter", user_msg = "Enabling column filters")
+      values$filter <- "top"
+    } else if (identical(values$filter, "top")) {
+      log_info(ns = ns, "removing top filter", user_msg = "Disabling column filters")
+      values$filter <- "none"
+    }
   })
 
   # save state ========
@@ -318,30 +333,42 @@ module_selector_table_server <- function(
 }
 
 
-#' Selector table UI
+#' Selector table
 module_selector_table_ui <- function(id) {
   ns <- NS(id)
   DT::dataTableOutput(ns("selection_table"))
 }
 
-#' Selector table buttons
-module_selector_table_buttons <- function(id) {
+#' Selection buttons
+module_selector_table_selection_buttons <- function(id, border = TRUE) {
   ns <- NS(id)
+  style <- if(!border) "border: 0;" else ""
   tagList(
-    actionButton(ns("select_all"), "Select all", icon = icon("square-check")) |>
+    actionButton(ns("select_all"), "Select all", icon = icon("square-check"), style = style) |>
       add_tooltip("Select all items that match the current search in addition to those already selected."),
     spaces(1),
-    actionButton(ns("deselect_all"), "Deselect", icon = icon("square")) |>
+    actionButton(ns("deselect_all"), "Deselect", icon = icon("square"), style = style) |>
       add_tooltip("Deselect all items (even those not visible in the current search)")
   )
 }
 
-#' Selector column selector
-module_selector_table_columns_button <- function(id) {
+#' Column selector button
+module_selector_table_columns_button <- function(id, border = TRUE) {
   ns <- NS(id)
+  style <- if(!border) "border: 0;" else ""
   tagList(
-    actionButton(ns("pick_cols"), "Columns", icon = icon("gear")) |>
+    actionButton(ns("pick_cols"), "Adj. View", icon = icon("gear"), style = style) |>
       add_tooltip("Pick which columns to show")
+  )
+}
+
+#' Column search button
+module_selector_table_search_button <- function(id, border = TRUE) {
+  ns <- NS(id)
+  style <- if(!border) "border: 0;" else ""
+  tagList(
+    actionButton(ns("col_search"), "Adv. Search", icon = icon("search"), style = style) |>
+      add_tooltip("Toggle advanced column search option")
   )
 }
 

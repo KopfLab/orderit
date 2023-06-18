@@ -15,14 +15,17 @@ module_inventory_server <- function(input, output, session, data) {
     log_info(ns = ns, "rendering inventory UI")
     tagList(
       shinydashboard::box(
-        title = span(icon("flask-vial"), "Inventory"), width = 12,
+        title = span(
+          icon("flask-vial"), "Inventory",
+          div(
+            style = "position: absolute; right: 10px; top: 5px;",
+            module_selector_table_selection_buttons(ns("inventory_table"), border = FALSE),
+            module_selector_table_columns_button(ns("inventory_table"), border = FALSE),
+            module_selector_table_search_button(ns("inventory_table"), border = FALSE)
+          )
+        ), width = 12,
         status = "info", solidHeader = TRUE,
-        module_selector_table_ui(ns("inventory_table")),
-        footer = div(
-          module_selector_table_buttons(ns("inventory_table")),
-          spaces(1),
-          module_selector_table_columns_button(ns("inventory_table"))
-        )
+        module_selector_table_ui(ns("inventory_table"))
       )
 
     )
@@ -34,23 +37,24 @@ module_inventory_server <- function(input, output, session, data) {
     "inventory_table",
     get_data = data$get_inventory_data,
     id_column = "item_id",
-    show_columns = list(
-      Item = ifelse(
-        !is.na(url) & nchar(url) > 0,
-        sprintf("<a href = '%s' target = '_blank'>%s</a>", url, htmltools::htmlEscape(name)),
-        htmltools::htmlEscape(name)
-      ),
+    available_columns = list(
+      Item = name,
       Vendor = factor(vendor),
-      `Catalog #` = catalog_nr,
+      `Catalog #` =
+        ifelse(
+          !is.na(url) & nchar(url) > 0,
+          sprintf("<a href = '%s' target = '_blank'>%s</a>", url, htmltools::htmlEscape(catalog_nr)),
+          htmltools::htmlEscape(catalog_nr)
+        ),
       `Unit price` = price,
       `Unit size` = unit_size,
       `Notes` = notes
     ),
+    visible_columns = 1:5, # all except notes
     allow_view_all = FALSE,
     initial_page_length = 10,
-    filter = "top",
     selection = "multiple",
-    render_html = "Item",
+    render_html = "Catalog #",
     formatting_calls = list(
       list(func = DT::formatCurrency, columns = "Unit price")
     )

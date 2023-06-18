@@ -202,7 +202,10 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     get_users_data = users$get_data,
     get_active_user_data = get_active_user_data,
     get_grants_data = get_grants_data,
-    get_inventory_data = inventory$get_data
+    get_inventory_data = inventory$get_data,
+    users,
+    grants,
+    inventory
   )
 }
 

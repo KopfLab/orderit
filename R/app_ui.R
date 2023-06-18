@@ -38,6 +38,8 @@ ui <- function(timezone = NULL) {
       tags$style(
         type="text/css",
         HTML(paste(
+          ".box.box-solid > .box-header > .box-tools .btn { border: 0; box-shadow: none; }",
+
           # error validation output
           ".shiny-output-error-validation { color: red; font-size: 20px; padding: 20px; }", # do we want this red?
           ".shiny-output-error-info { color: black; font-size: 20px; padding: 20px; }",
