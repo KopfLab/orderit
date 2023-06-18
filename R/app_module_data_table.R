@@ -25,17 +25,6 @@ module_data_table_server <- function(
 
   # read data ==========
 
-  # grants data
-  # grants_data <- read_data("grants",
-  #                          cols = c("grant_id", "name", "status", "speed_type", "pi_user_id", "orderer_user_id"))
-  # grants_hash <- digest::digest(grants_data)
-  # if (!identical(grants_hash, isolate(values$grants_hash))) {
-  #   log_info(ns = ns, "found new grants data")
-  #   values$grants_data <- grants_data
-  #   values$grants_hash <- grants_hash
-  # }
-  #
-
   read_data <- function() {
 
     # info

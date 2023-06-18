@@ -133,6 +133,11 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
 
   is_authenticated <- reactive({ !is.null(values$active_user_data) })
 
+  get_active_user_data <- reactive({
+    validate(need(is_authenticated(), "user not authenticated"))
+    return(values$active_user_data)
+  })
+
   # lock/unlock events ====
   observe({
     # triggers
@@ -171,41 +176,14 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     log_success(ns = ns, "loading all done", user_msg = "Complete")
   }
 
-  # data functions ======
-
-  get_grants_data <- reactive({
-    log_debug(ns = ns, "retrieving grants data")
-    validate(need(grants$get_data(), "something went wrong retrieving the data"))
-    return(
-      grants$get_data() |>
-        dplyr::left_join(
-          users$get_data() |> dplyr::rename_with(~paste0("pi_", .x), everything()),
-          by = "pi_user_id"
-        ) |>
-        dplyr::left_join(
-          users$get_data() |> dplyr::rename_with(~paste0("orderer_", .x), everything()),
-          by = "orderer_user_id"
-        )
-    )
-  })
-
-
-  get_active_user_data <- reactive({
-    validate(need(is_authenticated(), "user not authenticated"))
-    return(values$active_user_data)
-  })
-
   #  return function ====
   list(
     reload_data = reload_data,
     is_authenticated = is_authenticated,
-    get_users_data = users$get_data,
     get_active_user_data = get_active_user_data,
-    get_grants_data = get_grants_data,
-    get_inventory_data = inventory$get_data,
-    users,
-    grants,
-    inventory
+    users = users,
+    grants = grants,
+    inventory = inventory
   )
 }
 

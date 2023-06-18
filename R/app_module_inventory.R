@@ -35,7 +35,7 @@ module_inventory_server <- function(input, output, session, data) {
   inventory <- callModule(
     module_selector_table_server,
     "inventory_table",
-    get_data = data$get_inventory_data,
+    get_data = data$inventory$get_data,
     id_column = "item_id",
     available_columns = list(
       Item = name,

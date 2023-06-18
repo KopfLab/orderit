@@ -25,11 +25,27 @@ module_grants_server <- function(input, output, session, data) {
     )
   })
 
+  # grants data ======
+  get_grants <- reactive({
+    validate(need(data$grants$get_data(), "something went wrong retrieving the data"))
+    return(
+      data$grants$get_data() |>
+        dplyr::left_join(
+          data$users$get_data() |> dplyr::rename_with(~paste0("pi_", .x), dplyr::everything()),
+          by = "pi_user_id"
+        ) |>
+        dplyr::left_join(
+          data$users$get_data() |> dplyr::rename_with(~paste0("orderer_", .x), dplyr::everything()),
+          by = "orderer_user_id"
+        )
+    )
+  })
+
   # grants table ==============
   grants <- callModule(
     module_selector_table_server,
     "grants_table",
-    get_data = data$get_grants_data,
+    get_data = get_grants,
     id_column = "grant_id",
     available_columns = list(
       Grant = name, Status = status, `Speed Type` = speed_type,
