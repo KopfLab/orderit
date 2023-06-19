@@ -31,8 +31,8 @@ module_grants_server <- function(input, output, session, data) {
     return(
       data$grants$get_data() |>
         dplyr::left_join(
-          data$users$get_data() |> dplyr::rename_with(~paste0("pi_", .x), dplyr::everything()),
-          by = "pi_user_id"
+          data$users$get_data() |> dplyr::rename_with(~paste0("approver_", .x), dplyr::everything()),
+          by = "approver_user_id"
         ) |>
         dplyr::left_join(
           data$users$get_data() |> dplyr::rename_with(~paste0("orderer_", .x), dplyr::everything()),
@@ -48,8 +48,9 @@ module_grants_server <- function(input, output, session, data) {
     get_data = get_grants,
     id_column = "grant_id",
     available_columns = list(
-      Grant = name, Status = status, `Speed Type` = speed_type,
-      `PI` = paste(pi_first_name %then% "", pi_last_name %then% ""),
+      Grant = name, Status = status, `Speed Type` = as.character(identifier),
+      `Approver` = paste(approver_first_name %then% "", approver_last_name %then% ""),
+      #`Needs approval` = paste(">=", scales::label_dollar()(approva_cutoff)),
       `Orderer` = paste(orderer_first_name %then% "", orderer_last_name %then% "")
     ),
     allow_view_all = TRUE,

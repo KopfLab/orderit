@@ -333,13 +333,13 @@ module_selector_table_server <- function(
 }
 
 
-#' Selector table
+# Selector table
 module_selector_table_ui <- function(id) {
   ns <- NS(id)
   DT::dataTableOutput(ns("selection_table"))
 }
 
-#' Selection buttons
+# Selection buttons
 module_selector_table_selection_buttons <- function(id, border = TRUE) {
   ns <- NS(id)
   style <- if(!border) "border: 0;" else ""
@@ -352,7 +352,7 @@ module_selector_table_selection_buttons <- function(id, border = TRUE) {
   )
 }
 
-#' Column selector button
+# Column selector button
 module_selector_table_columns_button <- function(id, border = TRUE) {
   ns <- NS(id)
   style <- if(!border) "border: 0;" else ""
@@ -362,7 +362,7 @@ module_selector_table_columns_button <- function(id, border = TRUE) {
   )
 }
 
-#' Column search button
+# Column search button
 module_selector_table_search_button <- function(id, border = TRUE) {
   ns <- NS(id)
   style <- if(!border) "border: 0;" else ""
