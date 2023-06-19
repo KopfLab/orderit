@@ -113,6 +113,9 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
           dplyr::filter(user_id == !!user_id)
         if(nrow(user) < 1L) abort(paste0("user does not exist: ", user_id))
         if(nrow(user) > 1L) abort(paste0("user_id is not unique: ", user_id))
+        user <- user |> as.list()
+        # split user groups
+        user$groups <- strsplit(user$groups, split = ",", fixed = TRUE)[[1]]
         user
       },
       error = function(e) {

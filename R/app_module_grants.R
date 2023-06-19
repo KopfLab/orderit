@@ -27,9 +27,19 @@ module_grants_server <- function(input, output, session, data) {
 
   # grants data ======
   get_grants <- reactive({
-    validate(need(data$grants$get_data(), "something went wrong retrieving the data"))
+    validate(
+      need(data$grants$get_data(), "something went wrong retrieving the data"),
+      need(data$users$get_data(), "something went wrong retrieving the data"),
+      need(data$get_active_user_data(), "something went wrong retrieving the data")
+    )
+
+    print(data$get_active_user_data())
+
     return(
       data$grants$get_data() |>
+        # grants in the same group as the user
+        dplyr::filter(.data$group %in% data$get_active_user_data()$groups) |>
+        # bring in approver and orderer names
         dplyr::left_join(
           data$users$get_data() |> dplyr::rename_with(~paste0("approver_", .x), dplyr::everything()),
           by = "approver_user_id"
