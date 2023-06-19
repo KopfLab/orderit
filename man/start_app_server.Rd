@@ -8,6 +8,7 @@ start_app_server(
   data_sheet_id,
   data_folder_id,
   gs_key_file,
+  timezone,
   user_id = Sys.getenv("SHINYPROXY_USERNAME"),
   log = TRUE,
   debug = TRUE

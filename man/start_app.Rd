@@ -8,6 +8,7 @@ start_app(
   data_sheet_id,
   data_folder_id,
   gs_key_file,
+  timezone = Sys.timezone(),
   user_id,
   log = TRUE,
   debug = FALSE,

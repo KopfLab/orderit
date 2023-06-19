@@ -15,6 +15,7 @@ Imports:
     digest,
     rlog,
     dplyr,
+    purrr,
     htmltools,
     shiny,
     shinydashboard,
@@ -26,4 +27,6 @@ Imports:
     gargle,
     googledrive,
     googlesheets4,
-    readxl
+    readr,
+    readxl,
+    scales
