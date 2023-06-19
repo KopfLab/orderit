@@ -41,9 +41,13 @@ module_data_table_server <- function(
 
     # try to read data
     data <- tryCatch({
-      data <- readxl::read_excel(local_file(), sheet = sheet) |>
-        dplyr::select({{ cols }})
+      data <- read_excel_sheet(local_file(), sheet = sheet, cols = {{ cols }})
       data
+    },
+    warning = function(w) {
+      log_error(ns = ns, "data reading failed", user_msg = "Data warning", error = w)
+      report_error()
+      NULL
     },
     error = function(e) {
       log_error(ns = ns, "data reading failed", user_msg = "Missing data", error = e)

@@ -30,7 +30,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     local_file = get_local_file,
     report_error = report_error,
     sheet = "users",
-    cols = c("user_id", "first_name", "last_name", "role")
+    cols = c("user_id", "first_name", "last_name", "groups", "role")
   )
 
   # grants
@@ -41,7 +41,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     local_file = get_local_file,
     report_error = report_error,
     sheet = "grants",
-    cols = c("grant_id", "name", "status", "speed_type", "pi_user_id", "orderer_user_id")
+    cols = c("grant_id" = "integer", "name", "identifier", "group", "status", "approver_user_id", "approval_cutoff" = "double", "orderer_user_id")
   )
 
   # inventory
