@@ -33,8 +33,6 @@ module_grants_server <- function(input, output, session, data) {
       need(data$get_active_user_data(), "something went wrong retrieving the data")
     )
 
-    print(data$get_active_user_data())
-
     return(
       data$grants$get_data() |>
         # grants in the same group as the user
@@ -58,9 +56,13 @@ module_grants_server <- function(input, output, session, data) {
     get_data = get_grants,
     id_column = "grant_id",
     available_columns = list(
-      Grant = name, Status = status, `Speed Type` = as.character(identifier),
+      Grant = name, Status = status, `Speed Type` = identifier,
       `Approver` = paste(approver_first_name %then% "", approver_last_name %then% ""),
-      #`Needs approval` = paste(">=", scales::label_dollar()(approva_cutoff)),
+      `Needs approval` =
+        ifelse(!is.na(approval_cutoff) & approval_cutoff > 0,
+          paste(">", scales::label_dollar()(approval_cutoff)),
+          "no"
+        ),
       `Orderer` = paste(orderer_first_name %then% "", orderer_last_name %then% "")
     ),
     allow_view_all = TRUE,

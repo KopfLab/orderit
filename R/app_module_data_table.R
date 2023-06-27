@@ -56,12 +56,19 @@ module_data_table_server <- function(
     })
 
     # hash
-    hash <- digest::digest(data)
+    hash <- data |> hash_data()
     if (!identical(hash, isolate(values$hash))) {
       log_info(ns = ns, "found new '", sheet, "' data")
       values$data <- data
       values$hash <- hash
     }
+  }
+
+  # hash data
+  hash_data <- function(data) {
+    data |>
+      dplyr::select(-".add", -".update", -".delete") |>
+      digest::digest()
   }
 
   # get data ==========
