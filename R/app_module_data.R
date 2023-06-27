@@ -74,7 +74,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
           file_path <- "local_data.xlsx"
           log_debug(ns = ns, "in DEV mode, using local data file")
         } else
-          file_path <- download_google_sheet(data_sheet_id, gs_key_file = gs_key_file)
+          file_path <- download_gs(data_sheet_id, gs_key_file = gs_key_file)
 
         # save locally if in dev mode
         if (is_dev_mode() && !file.exists("local_data.xlsx")) {

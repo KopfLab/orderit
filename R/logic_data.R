@@ -1,7 +1,8 @@
 # google sheet ======
 
-download_google_sheet <- function(gs_id, gs_key_file = "gdrive_access_key.json") {
+authenticate_gdrive <- function(gs_key_file) {
   # google drive authentication
+  googlesheets4::gs4_deauth()
   googledrive::drive_deauth()
 
   # authenticate with key file
@@ -22,6 +23,8 @@ download_google_sheet <- function(gs_id, gs_key_file = "gdrive_access_key.json")
   if (is.null(token_obj))
     abort("google authentication failed with the provided key file")
 
+  # run authentication
+  googlesheets4::gs4_auth(token = token_obj)
   googledrive::drive_auth(token = token_obj)
 
   # check result
@@ -31,20 +34,111 @@ download_google_sheet <- function(gs_id, gs_key_file = "gdrive_access_key.json")
     abort("google authentication failed with the provided key file")
   }
 
+}
+
+# download a google sheet
+download_gs <- function(gs_id, gs_key_file = "gdrive_access_key.json") {
+  authenticate_gdrive(gs_key_file = gs_key_file)
   op <- options(googledrive_quiet = TRUE)
   on.exit(options(op))
   download_to <- paste0(tempfile(), ".xlsx")
   result <- googledrive::drive_download(googledrive::as_id(gs_id), path = download_to)
   if(!file.exists(download_to))
     abort("google sheet download failed")
-
   return(download_to)
+}
+
+# make actual changes in google spreadsheet
+commit_changes_to_gs <- function(df, gs_id, gs_sheet, gs_key_file = "gdrive_access_key.json") {
+
+  # safety checks
+  stopifnot(
+    "`df` required" = !missing(df) || !is.data.frame(df)
+  )
+
+  # update
+  if (any(df$.update & !df$.add)) {
+    df |> dplyr::filter(.data$.update & !.data$.add) |>
+      update_in_gs(gs_id = gs_id, gs_sheet = gs_sheet, gs_key_file = gs_key_file)
+  }
+
+  # add
+  if (any(df$.add)) {
+    df |> dplyr::filter(.data$.add) |>
+      add_to_gs(gs_id = gs_id, gs_sheet = gs_sheet, gs_key_file = gs_key_file)
+  }
+
+  # delete
+  if (any(df$.delete)) {
+    abort("deleting data in the google sheet is not yet implemented")
+  }
+
+  return(invisible(df))
+}
+
+# add rows to the google spreadsheet
+add_to_gs <- function(df_add, gs_id, gs_sheet, gs_key_file = "gdrive_access_key.json") {
+
+  # set formula for ID
+  if (all(is.na(df_add[[1]]))) {
+    df_add[[1]] <- googlesheets4::gs4_formula(
+      '=INDIRECT("R[-1]C[0]", FALSE) + 1')
+  } else if (any(is.na(df_add[[1]]))) {
+    abort("ids for new records must either all be set explicitly or all NA")
+  }
+
+  # remove add/edit/update flag columns
+  df_add <- df_add |>
+    dplyr::select(-".rowid", -".add", -".update", -".delete")
+
+  # authenticate
+  authenticate_gdrive(gs_key_file = gs_key_file)
+
+  # write
+  tryCatch(
+    googlesheets4::sheet_append(gs_id, df_add, sheet = gs_sheet),
+    error = function(e) {
+      sprintf("adding new %s data failed", gs_sheet) |>
+        abort(parent = e)
+    }
+  )
+}
+
+# update record in google spreadsheet
+update_in_gs <- function(df_update, gs_id, gs_sheet, gs_key_file = "gdrive_access_key.json") {
+
+  # remove add/edit/update flag columns
+  rows <- df_update$.rowid
+  df_update <- df_update |>
+    dplyr::select(-".rowid", -".add", -".update", -".delete")
+
+  print(df_update)
+
+  # authenticate
+  authenticate_gdrive(gs_key_file = gs_key_file)
+
+  # write
+  for (i in seq_along(rows)) {
+    # one row at a time because of the range issue
+    tryCatch(
+      googlesheets4::range_write(
+        gs_id, df_update[i, ], sheet = gs_sheet,
+        range = paste0("A", rows[i] + 1L),
+        col_names = FALSE,
+        reformat = FALSE),
+      error = function(e) {
+        sprintf("updating %s data row %d failed", gs_sheet, rows[i]) |>
+          abort(parent = e)
+      }
+    )
+  }
 }
 
 # excel file ======
 
 # read excel sheet with column type checks
-read_excel_sheet <- function(file_path, sheet, cols, id_col = cols[1]) {
+# @param list of columns and their types, for undefined column types assumes "character" by default - note that ALL columns in the spreadsheet must be included here and the first column must be a unique ID (both will be checked and throw errors if not true)
+read_excel_sheet <- function(file_path, sheet, cols) {
 
   # parse cols param
   col_types <- unname(cols)
@@ -54,12 +148,6 @@ read_excel_sheet <- function(file_path, sheet, cols, id_col = cols[1]) {
   col_types[no_types] <- "character"
   col_names[no_types] <- no_types_vals
   cols <- col_types |> stats::setNames(col_names)
-
-  # id col
-  if (!is.null(names(id_col)) && nchar(names(id_col)) > 0)
-    id_col <- names(id_col)
-  else
-    id_col <- unname(id_col)
 
   # type map
   excel_col_types <- c(
@@ -77,10 +165,22 @@ read_excel_sheet <- function(file_path, sheet, cols, id_col = cols[1]) {
     "unsupported column type" = all(col_types %in% names(excel_col_types))
   )
 
+  # warn about factors
+  if (any(col_types == "factor")) {
+    warn("reading data in as 'factor' is not recommended if the data needs in this table needs to be editable (totally okay if view only)")
+  }
+
   # read excel sheet
   sheet_cols <- names(readxl::read_excel(file_path, sheet = sheet, n_max = 0))
   sheet_col_types <- excel_col_types[cols[sheet_cols]] |> unname()
+  if (any(is.na(sheet_col_types))) {
+    sprintf("unexpected column(s) in spreadsheet: %s",
+            paste(sheet_cols[is.na(sheet_col_types)], collapse = ", ")) |>
+      abort()
+  }
   sheet_col_types[is.na(sheet_col_types)] <- "skip"
+
+
   data <- readxl::read_excel(
     file_path, sheet = sheet,
     col_types = sheet_col_types
@@ -108,9 +208,9 @@ read_excel_sheet <- function(file_path, sheet, cols, id_col = cols[1]) {
   data <- data |>
     dplyr::mutate(!!!parsers) |>
     dplyr::mutate(
-      .rowid = dplyr::row_number(), .id = !!sym(id_col),
+      .rowid = dplyr::row_number(),
       .add = FALSE, .update = FALSE, .delete = FALSE,
-      .before = 1L
+      .after = 1L
     )
 
   # return
@@ -131,7 +231,7 @@ get_index_by_id <- function(df, id) {
 
   # find idx by id
   idx <- map_int(id, ~{
-    idx <- which(df$.id == .x)
+    idx <- which(df[[1]] == .x)
     if (length(idx) < 1L) abort(sprintf("`id` not in the dataset: %s", .x))
     else if (length(idx) > 1L) abort(sprintf("`id` not unique: %s", .x))
     idx
@@ -151,7 +251,13 @@ update_data <- function(df, id, idx = get_index_by_id(df, id), ...) {
   if (length(idx) > 0) {
     updates <- enquos(...)
     for (i in seq_along(updates)) {
-      df[idx,] <- within(df[idx,], assign(names(updates)[i], eval_tidy(updates[[i]])))
+      old_value <- df[[names(updates)[i]]][idx]
+      new_value <- with(df[idx,], eval_tidy(updates[[i]]))
+      # check if this is a change
+      if (!identical(new_value, old_value)) {
+        df[[names(updates)[i]]][idx] <- new_value
+        df$.update[idx] <- TRUE
+      }
     }
   }
   return(df)
@@ -182,7 +288,12 @@ add_data <- function(df, ...) {
   idx <- max(df$.rowid) + 1L
   df <- df |>
     dplyr::bind_rows(
-      dplyr::tibble(.rowid = idx)
+      dplyr::tibble(
+        .rowid = idx,
+        .add = TRUE,
+        .update = FALSE,
+        .delete = FALSE
+      )
     )
 
   adds <- enquos(...)
