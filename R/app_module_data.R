@@ -55,7 +55,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     report_error = report_error,
     reload_data = reload_data,
     sheet = "inventory",
-    cols = c("item_id" = "integer", "status", "name", "vendor", "catalog_nr", "unit_price" = "double", "unit_size", "added_by", "added_on", "notes", "url")
+    cols = c("item_id" = "integer", "status", "name", "vendor", "catalog_nr", "unit_price" = "double", "unit_size", "added_by", "added_on" = "datetime", "notes", "url")
   )
 
   # (re-) load data event =====
@@ -100,9 +100,9 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     log_info(ns = ns, "loading data from xlsx file", user_msg = "Loading data")
 
     # reading data
-    users$read_data()
-    grants$read_data()
-    inventory$read_data()
+    users$read_data(timezone = timezone)
+    grants$read_data(timezone = timezone)
+    inventory$read_data(timezone = timezone)
   }, priority = 9L)
 
   # authentication event =====

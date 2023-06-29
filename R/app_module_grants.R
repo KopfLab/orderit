@@ -20,7 +20,7 @@ module_grants_server <- function(input, output, session, data) {
           div(
             style = "position: absolute; right: 10px; top: 5px;",
             actionButton(ns("add"), "New Grant", icon = icon("plus"), style = "border: 0;") |>
-              add_tooltip("Add a new grant"),
+              add_tooltip("Add a new grant."),
             actionButton(ns("edit"), "Edit Grant", icon = icon("pen-to-square"), style = "border: 0;") |>
               add_tooltip("Edit the selected grant."),
             module_selector_table_columns_button(ns("grants_table"), border = FALSE),
@@ -55,7 +55,6 @@ module_grants_server <- function(input, output, session, data) {
         by = "orderer_user_id"
       ) |>
       dplyr::arrange(.data$status, tolower(.data$name))
-
 
     return(df)
   })

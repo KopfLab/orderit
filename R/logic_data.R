@@ -113,8 +113,6 @@ update_in_gs <- function(df_update, gs_id, gs_sheet, gs_key_file = "gdrive_acces
   df_update <- df_update |>
     dplyr::select(-".rowid", -".add", -".update", -".delete")
 
-  print(df_update)
-
   # authenticate
   authenticate_gdrive(gs_key_file = gs_key_file)
 
@@ -139,7 +137,7 @@ update_in_gs <- function(df_update, gs_id, gs_sheet, gs_key_file = "gdrive_acces
 
 # read excel sheet with column type checks
 # @param list of columns and their types, for undefined column types assumes "character" by default - note that ALL columns in the spreadsheet must be included here and the first column must be a unique ID (both will be checked and throw errors if not true)
-read_excel_sheet <- function(file_path, sheet, cols) {
+read_excel_sheet <- function(file_path, sheet, cols, timezone = Sys.timezone()) {
 
   # parse cols param
   col_types <- unname(cols)
@@ -168,7 +166,7 @@ read_excel_sheet <- function(file_path, sheet, cols) {
 
   # warn about factors
   if (any(col_types == "factor")) {
-    warn("reading data in as 'factor' is not recommended if the data needs in this table needs to be editable (totally okay if view only)")
+    warn("reading data in as 'factor' is not recommended if the data needs in this table needs to be editable - convert to factor when creating the selection table instead")
   }
 
   # read excel sheet
@@ -188,9 +186,11 @@ read_excel_sheet <- function(file_path, sheet, cols) {
   )
 
   # parse map
+  tz_adjust <- function(x) lubridate::with_tz(x, timezone)
   col_type_parsers <- c(
     "integer" = expr(as.integer),
-    "factor" = expr(as.factor)
+    "factor" = expr(as.factor),
+    "datetime" = expr(tz_adjust)
   )
 
   # parsers

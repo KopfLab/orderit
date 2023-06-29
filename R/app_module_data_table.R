@@ -31,7 +31,7 @@ module_data_table_server <- function(
 
   # read data ==========
 
-  read_data <- function() {
+  read_data <- function(timezone = Sys.timezone()) {
 
     # info
     log_debug(ns = ns, "reading data from xlsx file for sheet '", sheet, "'")
@@ -47,7 +47,7 @@ module_data_table_server <- function(
 
     # try to read data
     data <- tryCatch({
-      data <- read_excel_sheet(local_file(), sheet = sheet, cols = {{ cols }})
+      data <- read_excel_sheet(local_file(), sheet = sheet, cols = {{ cols }}, timezone = timezone)
       data
     },
     warning = function(w) {
@@ -102,8 +102,12 @@ module_data_table_server <- function(
     values$edit_idx <- idx
   }
 
+  is_add <- function() {
+    return(is_empty(values$edit_idx))
+  }
+
   update <- function(...) {
-    if (!is_empty(values$edit_idx)) {
+    if (!is_add()) {
       # edit
       values$data_changed <- values$data_changed |>
         update_data(.idx = values$edit_idx, ...)
@@ -190,6 +194,7 @@ module_data_table_server <- function(
     get_data = get_data,
     start_add = start_add,
     start_edit = start_edit,
+    is_add = is_add,
     update = update,
     has_changes = has_changes,
     commit = commit
