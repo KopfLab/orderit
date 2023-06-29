@@ -1,7 +1,7 @@
 # data server ----
 # @param data_sheet_id google sheets id with the app data
 # @param data_folder_id google drive folder id for file storage
-module_data_server <- function(input, output, session, data_sheet_id, data_folder_id, gs_key_file, user_id) {
+module_data_server <- function(input, output, session, data_sheet_id, data_folder_id, gs_key_file, timezone, user_id) {
 
   # namespace
   ns <- session$ns
@@ -10,7 +10,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
   values <- reactiveValues(
     load_data = 1L,
     file_path = NULL,
-     active_user_data = NULL,
+    active_user_data = NULL,
     active_user_hash = NULL,
     locked = NULL,
     error = FALSE
@@ -55,7 +55,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     report_error = report_error,
     reload_data = reload_data,
     sheet = "inventory",
-    cols = c("item_id", "name", "vendor", "catalog_nr", "price" = "double", "unit_size", "notes", "url")
+    cols = c("item_id" = "integer", "status", "name", "vendor", "catalog_nr", "unit_price" = "double", "unit_size", "added_by", "added_on", "notes", "url")
   )
 
   # (re-) load data event =====
@@ -182,6 +182,18 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     log_success(ns = ns, "loading all done", user_msg = "Complete")
   }
 
+  # download data =====
+
+  output$download <- downloadHandler(
+    filename = function() {
+      lubridate::now() |> lubridate::with_tz(timezone) |>
+        format("data_%Y_%m_%d_%H_%M_%S.xlsx")
+    },
+    content = function(file) {
+      file.copy(from = isolate(values$file_path), to = file)
+    }
+  )
+
   #  return function ====
   list(
     reload_data = reload_data,
@@ -196,5 +208,13 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
 # data ui components - reload button ------
 module_data_reload_button <- function(id) {
   ns <- NS(id)
-  actionButton(ns("reload"), "Reload", icon = icon("cloud-download-alt"))
+  actionButton(ns("reload"), "Reload", icon = icon("rotate")) |>
+    add_tooltip("Reload all data")
+}
+
+# data ui components - download button ------
+module_data_download_button <- function(id) {
+  ns <- NS(id)
+  downloadButton(ns("download"), "Backup") |>
+    add_tooltip("Download all data")
 }

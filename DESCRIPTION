@@ -17,6 +17,7 @@ Imports:
     tibble,
     dplyr,
     purrr,
+    lubridate,
     htmltools,
     shiny,
     shinydashboard,

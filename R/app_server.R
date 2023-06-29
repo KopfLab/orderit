@@ -21,6 +21,7 @@ server <- function(data_sheet_id, data_folder_id, gs_key_file, timezone, user_id
       data_sheet_id = data_sheet_id,
       data_folder_id = data_folder_id,
       gs_key_file = gs_key_file,
+      timezone = timezone,
       user_id = user_id
     )
 

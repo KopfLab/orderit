@@ -26,10 +26,11 @@ ui <- function(timezone = NULL) {
         shinydashboard::menuItem("Inventory", tabName = "inventory", icon = icon("flask-vial"), selected = T),
         shinydashboard::menuItem("Orders", tabName = "orders", icon = icon("poo-storm")),
         # FIXME change default
-        shinydashboard::menuItem("Grants", tabName = "grants", icon = icon("coins"), selected = TRUE)
+        shinydashboard::menuItem("Grants", tabName = "grants", icon = icon("coins"))
       )
     ) |> shinyjs::hidden(),
     module_data_reload_button("data"),
+    module_data_download_button("data"),
     shinyjs::useShinyjs(), # enable shinyjs
     shinytoastr::useToastr(), # enable toaster
     prompter::use_prompt(), # enable prompter
@@ -38,8 +39,8 @@ ui <- function(timezone = NULL) {
       tags$style(
         type="text/css",
         HTML(paste(
-          ".box.box-solid > .box-header > .box-tools .btn { border: 0; box-shadow: none; }",
-
+          # navbar download button
+          ".skin-yellow .sidebar .shiny-download-link { color: #444; margin-left: 15px; margin-top: 5px; }",
           # error validation output
           ".shiny-output-error-validation { color: red; font-size: 20px; padding: 20px; }", # do we want this red?
           ".shiny-output-error-info { color: black; font-size: 20px; padding: 20px; }",
