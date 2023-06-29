@@ -37,6 +37,12 @@ server <- function(data_sheet_id, data_folder_id, gs_key_file, timezone, user_id
       data = data
     )
 
+    # orders module
+    orders <- callModule(
+      module_orders_server, id = "orders",
+      data = data
+    )
+
   })
 
 }

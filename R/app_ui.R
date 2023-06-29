@@ -23,9 +23,8 @@ ui <- function(timezone = NULL) {
         id = "nav",
         h5("App version", as.character(packageVersion(packageName())), align = "center"),
         if (!is.null(timezone)) h5(timezone, align = "center"),
-        shinydashboard::menuItem("Inventory", tabName = "inventory", icon = icon("flask-vial"), selected = T),
-        shinydashboard::menuItem("Orders", tabName = "orders", icon = icon("poo-storm")),
-        # FIXME change default
+        shinydashboard::menuItem("Orders", tabName = "orders", icon = icon("code-pull-request")),
+        shinydashboard::menuItem("Inventory", tabName = "inventory", icon = icon("flask-vial")),
         shinydashboard::menuItem("Grants", tabName = "grants", icon = icon("coins"))
       )
     ) |> shinyjs::hidden(),
@@ -61,13 +60,12 @@ ui <- function(timezone = NULL) {
   body <- shinydashboard::dashboardBody(
     shinydashboard::tabItems(
       shinydashboard::tabItem(
-        "inventory",
-        tableOutput("users"),
-        module_inventory_ui(id = "inventory")
+        "orders",
+        module_orders_ui(id = "orders")
       ),
       shinydashboard::tabItem(
-        "orders",
-        h4(icon("poo-storm"), "Orders")
+        "inventory",
+        module_inventory_ui(id = "inventory")
       ),
       shinydashboard::tabItem(
         "grants",

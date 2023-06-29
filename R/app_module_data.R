@@ -58,6 +58,18 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     cols = c("item_id" = "integer", "status", "name", "vendor", "catalog_nr", "unit_price" = "double", "unit_size", "added_by", "added_on" = "datetime", "details", "url")
   )
 
+  # orders
+  orders <- callModule(
+    module_data_table_server, id = "orders",
+    data_sheet_id = data_sheet_id,
+    gs_key_file = gs_key_file,
+    local_file = get_local_file,
+    report_error = report_error,
+    reload_data = reload_data,
+    sheet = "orders",
+    cols = c("order_id" = "integer", "item_id" = "integer", "quantity" = "integer", "grant_id" = "integer", "notes", "requested_by", "requested_on" = "datetime", "approved_by", "approved_on" = "datetime", "ordered_by", "ordered_on" = "datetime", "received_by", "received_on" = "datetime")
+  )
+
   # (re-) load data event =====
   reload_data <- function() {
     values$load_data <- values$load_data + 1L
@@ -103,6 +115,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     users$read_data(timezone = timezone)
     grants$read_data(timezone = timezone)
     inventory$read_data(timezone = timezone)
+    orders$read_data(timezone = timezone)
   }, priority = 9L)
 
   # authentication event =====
@@ -201,7 +214,8 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     get_active_user_data = get_active_user_data,
     users = users,
     grants = grants,
-    inventory = inventory
+    inventory = inventory,
+    orders = orders
   )
 }
 
