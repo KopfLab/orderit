@@ -23,7 +23,12 @@ ui <- function(timezone = NULL) {
         id = "nav",
         h5("App version", as.character(packageVersion(packageName())), align = "center"),
         if (!is.null(timezone)) h5(timezone, align = "center"),
-        shinydashboard::menuItem("Orders", tabName = "orders", icon = icon("code-pull-request")),
+        shinydashboard::menuItem(
+          "Orders", icon = icon("bolt"), startExpanded = TRUE,
+          shinydashboard::menuSubItem("Requests", icon = icon("code-pull-request"), tabName = "requested"),
+          shinydashboard::menuSubItem("Ordered", icon = icon("truck"), tabName = "ordered"),
+          shinydashboard::menuSubItem("Received", icon = icon("check"), tabName = "received")
+        ),
         shinydashboard::menuItem("Inventory", tabName = "inventory", icon = icon("flask-vial")),
         shinydashboard::menuItem("Grants", tabName = "grants", icon = icon("coins"))
       )
@@ -60,8 +65,16 @@ ui <- function(timezone = NULL) {
   body <- shinydashboard::dashboardBody(
     shinydashboard::tabItems(
       shinydashboard::tabItem(
-        "orders",
-        module_orders_ui(id = "orders")
+        "requested",
+        module_orders_requested_ui(id = "orders")
+      ),
+      shinydashboard::tabItem(
+        "ordered",
+        module_orders_ordered_ui(id = "orders")
+      ),
+      shinydashboard::tabItem(
+        "received",
+        module_orders_received_ui(id = "orders")
       ),
       shinydashboard::tabItem(
         "inventory",

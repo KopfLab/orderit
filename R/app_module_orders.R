@@ -4,10 +4,10 @@ module_orders_server <- function(input, output, session, data) {
   # namespace
   ns <- session$ns
 
-  # generate UI =====================
-  output$main <- renderUI({
+  # generate requested UI =====================
+  output$main_requested <- renderUI({
     req(data$is_authenticated())
-    log_info(ns = ns, "rendering orders UI")
+    log_info(ns = ns, "rendering requested UI")
     tagList(
       # requested
       tabPanel(
@@ -24,7 +24,16 @@ module_orders_server <- function(input, output, session, data) {
           status = "info", solidHeader = TRUE, collapsible = TRUE,
           module_selector_table_ui(ns("requested_table"))
         )
-      ),
+      )
+    )
+  })
+
+  # generate ordered ui ============
+
+  output$main_ordered <- renderUI({
+    req(data$is_authenticated())
+    log_info(ns = ns, "rendering ordered UI")
+    tagList(
       # ordered
       tabPanel(
         "Ordered",
@@ -40,7 +49,16 @@ module_orders_server <- function(input, output, session, data) {
           status = "info", solidHeader = TRUE, collapsible = TRUE,
           module_selector_table_ui(ns("ordered_table"))
         )
-      ),
+      )
+    )
+  })
+
+  # generated received ui ============
+
+  output$main_received <- renderUI({
+    req(data$is_authenticated())
+    log_info(ns = ns, "rendering requested UI")
+    tagList(
       # received
       tabPanel(
         "Received",
@@ -119,20 +137,35 @@ module_orders_server <- function(input, output, session, data) {
   get_ordered <- reactive({
     get_orders() |>
       dplyr::filter(!is.na(.data$ordered_on) & is.na(.data$received_on)) |>
-      dplyr::arrange(dplyr::desc(.data$ordered_on))
-    # bring in ordered_by
+      dplyr::arrange(dplyr::desc(.data$ordered_on)) |>
+      dplyr::arrange(dplyr::desc(.data$requested_on)) |>
+      # bring in ordered_by
+      dplyr::left_join(
+        data$users$get_data() |> dplyr::rename_with(~paste0("ordered_by_", .x), dplyr::everything()),
+        by = c("ordered_by" = "ordered_by_user_id")
+      ) |>
+      dplyr::mutate(
+        ordered_by = paste(ordered_by_first_name %then% "", ordered_by_last_name %then% "") |>
+          factor()
+      )
   })
 
   get_received <- reactive({
     get_orders() |>
       dplyr::filter(!is.na(.data$received_on)) |>
-      dplyr::arrange(dplyr::desc(.data$received_on))
-    # bring in received by
+      dplyr::arrange(dplyr::desc(.data$received_on)) |>
+      # bring in received by
+      dplyr::left_join(
+        data$users$get_data() |> dplyr::rename_with(~paste0("received_by_", .x), dplyr::everything()),
+        by = c("received_by" = "received_by_user_id")
+      ) |>
+      dplyr::mutate(
+        received_by = paste(received_by_first_name %then% "", received_by_last_name %then% "") |>
+          factor()
+      )
   })
 
-  # data tables ==============
-
-  # requested
+  # requested data table ==============
   requested <- callModule(
     module_selector_table_server,
     "requested_table",
@@ -168,40 +201,82 @@ module_orders_server <- function(input, output, session, data) {
     )
   )
 
-  # ordered
+  # ordered data table ===========
   ordered <- callModule(
     module_selector_table_server,
     "ordered_table",
     get_data = get_ordered,
     id_column = "order_id",
     available_columns = list(
-      Quantity = quantity,
+      Item = item_name,
+      Vendor = vendor,
+      `Catalog #` =
+        ifelse(
+          !is.na(url) & nchar(url) > 0,
+          sprintf(
+            "<a href = '%s' target = '_blank'>%s</a>",
+            gsub("^(http(s?)://)?", "https://", url), htmltools::htmlEscape(catalog_nr)
+          ),
+          htmltools::htmlEscape(catalog_nr)
+        ),
+      Quantity = sprintf("%d x %s", quantity, unit_size),
+      `Requested by` = requester,
+      `Requested on` = as.character(requested_on),
+      `Ordered by` = ordered_by,
+      `Ordered on` = as.character(ordered_on),
       Notes = notes
     ),
     allow_view_all = TRUE,
     initial_page_length = 10,
-    selection = "multiple"
+    selection = "multiple",
+    render_html = "Catalog #"
   )
 
-  # received
+  # received data table ==========
   received <- callModule(
     module_selector_table_server,
     "received_table",
     get_data = get_received,
     id_column = "order_id",
     available_columns = list(
-      Quantity = quantity,
+      Item = item_name,
+      Vendor = vendor,
+      `Catalog #` =
+        ifelse(
+          !is.na(url) & nchar(url) > 0,
+          sprintf(
+            "<a href = '%s' target = '_blank'>%s</a>",
+            gsub("^(http(s?)://)?", "https://", url), htmltools::htmlEscape(catalog_nr)
+          ),
+          htmltools::htmlEscape(catalog_nr)
+        ),
+      Quantity = sprintf("%d x %s", quantity, unit_size),
+      `Requested by` = requester,
+      `Requested on` = as.character(requested_on),
+      `Received by` = received_by,
+      `Received on` = as.character(received_on),
       Notes = notes
     ),
     allow_view_all = FALSE,
     initial_page_length = 10,
-    selection = "none"
+    selection = "none",
+    render_html = "Catalog #"
   )
 
 }
 
 # orders user interface ------
-module_orders_ui <- function(id) {
+module_orders_requested_ui <- function(id) {
   ns <- NS(id)
-  uiOutput(ns("main")) |> shinycssloaders::withSpinner()
+  uiOutput(ns("main_requested")) |> shinycssloaders::withSpinner()
+}
+
+module_orders_ordered_ui <- function(id) {
+  ns <- NS(id)
+  uiOutput(ns("main_ordered")) |> shinycssloaders::withSpinner()
+}
+
+module_orders_received_ui <- function(id) {
+  ns <- NS(id)
+  uiOutput(ns("main_received")) |> shinycssloaders::withSpinner()
 }
