@@ -102,6 +102,8 @@ module_selector_table_server <- function(
     values$filter
     log_debug(ns = ns, "rendering selection table")
 
+    print(get_table_df_selected_cols())
+
     # get the table
     table <-
       tryCatch(

@@ -3,7 +3,7 @@
 # @param report_error (usually reactive) function reporting an error
 module_data_table_server <- function(
     input, output, session, data_sheet_id, gs_key_file,
-    local_file, report_error,
+    local_file, report_error, reload_data,
     sheet, cols = dplyr::everything()) {
 
   # namespace
@@ -13,14 +13,20 @@ module_data_table_server <- function(
   values <- reactiveValues(
     load_data = 1L,
     data = NULL,
-    hash = NULL
+    data_changes = NULL,
+    hash = NULL,
+    edit_id = NULL,
+    edit_idx = NULL
   )
 
   # reset ========
 
   reset <- function() {
     values$data <- NULL
+    values$data_changes <- NULL
     values$hash <- NULL
+    values$edit_id <- NULL
+    values$edit_idx <- NULL
   }
 
   # read data ==========
@@ -61,6 +67,7 @@ module_data_table_server <- function(
       log_info(ns = ns, "found new '", sheet, "' data")
       values$data <- data
       values$hash <- hash
+      values$data_changed <- values$data
     }
   }
 
@@ -78,12 +85,114 @@ module_data_table_server <- function(
     return(values$data)
   })
 
+  # data modifications =========
+
+  # returns whether add was started (or is resuming)
+  start_add <- function() {
+    log_debug(ns = ns, "starting add")
+    values$edit_id <- NULL
+    values$edit_idx <- NULL
+  }
+
+  start_edit <- function(id, idx = get_index_by_id(values$data, id)) {
+    log_debug(ns = ns, "starting edit for ",
+              sprintf("id '%s' / idx %d", id, idx) |>
+                paste(collapse = ", "))
+    values$edit_id <- id
+    values$edit_idx <- idx
+  }
+
+  update <- function(...) {
+    if (!is_empty(values$edit_idx)) {
+      # edit
+      values$data_changed <- values$data_changed |>
+        update_data(.idx = values$edit_idx, ...)
+    } else {
+      # add
+      values$data_changed <- values$data_changed |>
+        add_data(...)
+    }
+  }
+
+  has_changes <- function() {
+    n_changes <- values$data_changed |>
+      dplyr::filter(.add | .update | .delete) |>
+      nrow()
+    return(n_changes > 0L)
+  }
+
+  commit <- function() {
+
+    if (!has_changes()) {
+      # no changes
+      log_info(ns = ns, "no changes, nothing to update")
+      return(TRUE)
+    }
+
+    # has changes
+    log_info(ns = ns, "writing data to spreadsheet", user_msg = "Saving data")
+
+    # try to save data
+    success <-
+      tryCatch({
+        commit_changes_to_gs(
+          df = values$data_changed,
+          gs_id = data_sheet_id,
+          gs_sheet = sheet,
+          gs_key_file = gs_key_file
+        )
+        TRUE
+      },
+      warning = function(w) {
+        log_error(ns = ns, "data writing failed", user_msg = "Encountered warning during data saving", error = w)
+        # unuscessful commit
+        FALSE
+      },
+      error = function(e) {
+        log_error(ns = ns, "data writing failed", user_msg = "Encountered error during data saving", error = e)
+        # unuscessful commit
+        FALSE
+      })
+
+    # success
+    if (success) {
+
+      # enfore reload even for dev mode
+      if (is_dev_mode() && file.exists("local_data.xlsx"))
+        file.remove("local_data.xlsx")
+
+      if (!any(values$data_changed$.add)) {
+        # nothing new added, just update values$data
+        values$data_changed <-
+          values$data_changed |>
+          dplyr::filter(!.delete) |>
+          dplyr::mutate(.add = FALSE, .update = FALSE)
+        values$data <- values$data_changed
+        values$hash <- values$data |> hash_data()
+      } else {
+        # something was added - reload data from server
+        # to get new IDs --> reloads everything
+        reload_data()
+      }
+      # succcesful commit
+      log_success(ns = ns, "data writing complete", user_msg = "Complete")
+    } else{
+      # reset data changed
+      values$data_changed <- value$data
+    }
+    return(success)
+  }
 
   # module functions ======
   list(
     reset = reset,
     read_data = read_data,
-    get_data = get_data
+    get_data = get_data,
+    start_add = start_add,
+    start_edit = start_edit,
+    update = update,
+    has_changes = has_changes,
+    commit = commit
   )
 
 }

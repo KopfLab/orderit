@@ -2,6 +2,7 @@
 
 authenticate_gdrive <- function(gs_key_file) {
   # google drive authentication
+  # FIXME: is this actually necessary?
   googlesheets4::gs4_deauth()
   googledrive::drive_deauth()
 
@@ -230,7 +231,7 @@ get_index_by_id <- function(df, id) {
   if (is_empty(id)) return(c())
 
   # find idx by id
-  idx <- map_int(id, ~{
+  idx <- purrr::map_int(id, ~{
     idx <- which(df[[1]] == .x)
     if (length(idx) < 1L) abort(sprintf("`id` not in the dataset: %s", .x))
     else if (length(idx) > 1L) abort(sprintf("`id` not unique: %s", .x))
@@ -240,23 +241,24 @@ get_index_by_id <- function(df, id) {
 }
 
 # update data by id or index
-update_data <- function(df, id, idx = get_index_by_id(df, id), ...) {
+update_data <- function(df, .id, .idx = get_index_by_id(df, .id), ..., .list = NULL) {
 
   # safety check
   stopifnot(
     "`df` required" = !missing(df) || !is.data.frame(df),
-    "`idx` needs to be in the dataset" = all(idx %in% df$.rowid)
+    "`.idx` needs to be in the dataset" = all(.idx %in% df$.rowid)
   )
 
-  if (length(idx) > 0) {
-    updates <- enquos(...)
+  if (length(.idx) > 0) {
+    if (!is.null(.list)) updates <- quos(!!!.list)
+    else updates <- enquos(...)
     for (i in seq_along(updates)) {
-      old_value <- df[[names(updates)[i]]][idx]
-      new_value <- with(df[idx,], eval_tidy(updates[[i]]))
+      old_value <- df[[names(updates)[i]]][.idx]
+      new_value <- with(df[.idx,], eval_tidy(updates[[i]]))
       # check if this is a change
       if (!identical(new_value, old_value)) {
-        df[[names(updates)[i]]][idx] <- new_value
-        df$.update[idx] <- TRUE
+        df[[names(updates)[i]]][.idx] <- new_value
+        df$.update[.idx] <- TRUE
       }
     }
   }
@@ -264,41 +266,43 @@ update_data <- function(df, id, idx = get_index_by_id(df, id), ...) {
 }
 
 # delete data by id or index
-delete_data <- function(df, id, idx = get_index_by_id(df, id)) {
+delete_data <- function(df, .id, .idx = get_index_by_id(df, .id)) {
   # safety check
   stopifnot(
     "`df` required" = !missing(df) || !is.data.frame(df),
-    "`idx` needs to be in the dataset" = all(idx %in% df$.rowid)
+    "`.idx` needs to be in the dataset" = all(.idx %in% df$.rowid)
   )
 
-  if (length(idx) > 0) {
-    df$.delete[idx] <- TRUE
+  if (length(.idx) > 0) {
+    df$.delete[.idx] <- TRUE
   }
   return(df)
 }
 
 # data data
-add_data <- function(df, ...) {
+add_data <- function(df, ..., .list = NULL) {
   # safety check
   stopifnot(
     "`df` required" = !missing(df) || !is.data.frame(df)
   )
 
   # add new line
-  idx <- max(df$.rowid) + 1L
+  .idx <- max(df$.rowid) + 1L
   df <- df |>
     dplyr::bind_rows(
       dplyr::tibble(
-        .rowid = idx,
+        .rowid = .idx,
         .add = TRUE,
         .update = FALSE,
         .delete = FALSE
       )
     )
 
-  adds <- enquos(...)
+  if (!is.null(.list)) adds <- quos(!!!.list)
+  else adds <- enquos(...)
+
   for (i in seq_along(adds)) {
-    df[idx,] <- within(df[idx,], assign(names(adds)[i], eval_tidy(adds[[i]])))
+    df[.idx,] <- within(df[.idx,], assign(names(adds)[i], eval_tidy(adds[[i]])))
   }
 
   return(df)

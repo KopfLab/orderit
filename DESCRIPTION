@@ -14,6 +14,7 @@ Imports:
     cli,
     digest,
     rlog,
+    tibble,
     dplyr,
     purrr,
     htmltools,

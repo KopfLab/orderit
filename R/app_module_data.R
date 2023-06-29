@@ -29,6 +29,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     gs_key_file = gs_key_file,
     local_file = get_local_file,
     report_error = report_error,
+    reload_data = reload_data,
     sheet = "users",
     cols = c("user_id", "first_name", "last_name", "groups", "role")
   )
@@ -40,8 +41,9 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     gs_key_file = gs_key_file,
     local_file = get_local_file,
     report_error = report_error,
+    reload_data = reload_data,
     sheet = "grants",
-    cols = c("grant_id" = "integer", "name", "identifier", "group", "status", "approver_user_id", "approval_cutoff" = "double", "orderer_user_id")
+    cols = c("grant_id" = "integer", "name", "identifier" = "character", "group", "status", "approver_user_id", "approval_cutoff" = "double", "orderer_user_id")
   )
 
   # inventory
@@ -51,6 +53,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     gs_key_file = gs_key_file,
     local_file = get_local_file,
     report_error = report_error,
+    reload_data = reload_data,
     sheet = "inventory",
     cols = c("item_id", "name", "vendor", "catalog_nr", "price" = "double", "unit_size", "notes", "url")
   )
@@ -88,7 +91,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
         values$error <- TRUE
         NULL
       })
-  }, priority = 1000L)
+  }, priority = 10L)
 
   # read data event =========
   observeEvent(values$load_data, {
@@ -100,7 +103,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     users$read_data()
     grants$read_data()
     inventory$read_data()
-  })
+  }, priority = 9L)
 
   # authentication event =====
   observeEvent(users$get_data(), {
@@ -132,7 +135,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
       values$active_user_hash <- active_user_hash
       log_info(ns = ns, "login complete")
     }
-  })
+  }, priority = 8L)
 
   is_authenticated <- reactive({ !is.null(values$active_user_data) })
 
@@ -165,7 +168,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
         log_info(ns = ns, "app stays locked")
       }
     })
-  }, priority = -1000L)
+  }, priority = 1L)
 
   lock_app <- function() {
     log_info(ns = ns, "locking app")

@@ -83,8 +83,8 @@ log_error <- function(..., ns = NULL, user_msg = NULL, error = NULL) {
 log_warning <- function(..., ns = NULL, user_msg = NULL, warning = NULL) {
   log_any(
     msg = paste0(..., collapse = ""), ns = ns,
-    log_fun = rlog::log_error,
-    toaster_fun = shinytoastr::toastr_error,
+    log_fun = rlog::log_warn,
+    toaster_fun = shinytoastr::toastr_warning,
     toaster = if (!is.null(warning)) cli::ansi_strip(warning) else user_msg,
     title = if (!is.null(warning)) user_msg else NULL,
     progressBar = TRUE,
