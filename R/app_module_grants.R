@@ -21,7 +21,7 @@ module_grants_server <- function(input, output, session, data) {
             style = "position: absolute; right: 10px; top: 5px;",
             actionButton(ns("add"), "New Grant", icon = icon("plus"), style = "border: 0;") |>
               add_tooltip("Add a new grant"),
-            actionButton(ns("edit"), "Edit Grant", icon = icon("plus"), style = "border: 0;") |>
+            actionButton(ns("edit"), "Edit Grant", icon = icon("pen-to-square"), style = "border: 0;") |>
               add_tooltip("Edit the selected grant."),
             module_selector_table_columns_button(ns("grants_table"), border = FALSE),
             module_selector_table_search_button(ns("grants_table"), border = FALSE)
