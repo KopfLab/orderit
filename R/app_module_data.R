@@ -55,7 +55,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     report_error = report_error,
     reload_data = reload_data,
     sheet = "inventory",
-    cols = c("item_id" = "integer", "status", "name", "vendor", "catalog_nr", "unit_price" = "double", "unit_size", "added_by", "added_on" = "datetime", "notes", "url")
+    cols = c("item_id" = "integer", "status", "name", "vendor", "catalog_nr", "unit_price" = "double", "unit_size", "added_by", "added_on" = "datetime", "details", "url")
   )
 
   # (re-) load data event =====

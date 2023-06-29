@@ -71,7 +71,7 @@ module_inventory_server <- function(input, output, session, data) {
       `Unit size` = unit_size,
       `Added by` = paste(first_name %then% "", last_name %then% ""),
       `Add timestamp` = as.character(added_on),
-      `Notes` = notes
+      `Details` = details
     ),
     visible_columns = 1:5, # through unit size
     allow_view_all = FALSE,
@@ -96,7 +96,7 @@ module_inventory_server <- function(input, output, session, data) {
       numericInput(ns("unit_price"), "Unit price", value = 0, min = 0),
       textInput(ns("unit_size"), "Unit size"),
       textInput(ns("url"), "URL"),
-      textAreaInput(ns("notes"), "Notes", resize = "vertical")
+      textAreaInput(ns("details"), "Details", resize = "vertical")
     )
   })
 
@@ -122,7 +122,7 @@ module_inventory_server <- function(input, output, session, data) {
     updateNumericInput(inputId = "unit_price", value = NA)
     updateTextInput(inputId = "unit_size", placeholder = "Enter unit size")
     updateTextInput(inputId = "url", placeholder = "Enter web address for item")
-    updateTextInput(inputId = "notes", placeholder = "Enter description and any other notes")
+    updateTextInput(inputId = "details", placeholder = "Enter details and notes")
     showModal(create_dialog("Add new inventory item"))
   })
 
@@ -144,7 +144,7 @@ module_inventory_server <- function(input, output, session, data) {
     updateNumericInput(inputId = "unit_price", value = item$unit_price)
     updateTextInput(inputId = "unit_size", value = item$unit_size)
     updateTextInput(inputId = "url", value = item$url)
-    updateTextInput(inputId = "notes", value = item$notes)
+    updateTextInput(inputId = "details", value = item$details)
     showModal(create_dialog("Edit inventory item"))
   })
 
@@ -167,7 +167,7 @@ module_inventory_server <- function(input, output, session, data) {
     if (check_inputs()) {
 
       # disable inputs while saving
-      c("status", "name", "vendor", "catalog_nr", "unit_price", "unit_size", "url", "notes", "save") |>
+      c("status", "name", "vendor", "catalog_nr", "unit_price", "unit_size", "url", "details", "save") |>
         purrr::walk(shinyjs::disable)
 
       # values
@@ -179,7 +179,7 @@ module_inventory_server <- function(input, output, session, data) {
         unit_price = input$unit_price,
         unit_size = input$unit_size,
         url = input$url,
-        notes = input$notes
+        details = input$details
       )
 
       # are we adding data?
