@@ -75,7 +75,7 @@ module_inventory_server <- function(input, output, session, data) {
       `Add timestamp` = as.character(added_on),
       `Details` = details
     ),
-    visible_columns = 1:5, # through unit size
+    visible_columns = 1:6, # through unit size
     allow_view_all = FALSE,
     initial_page_length = 10,
     selection = "multiple",
