@@ -14,6 +14,8 @@ module_inventory_server <- function(input, output, session, data) {
           icon("flask-vial"), "Inventory",
           div(
             style = "position: absolute; right: 10px; top: 5px;",
+            actionButton(ns("request"), "Request", icon = icon("code-pull-request"), style = "border: 0;") |>
+              add_tooltip("Request selected item(s)."),
             actionButton(ns("add"), "New Item", icon = icon("plus"), style = "border: 0;") |>
               add_tooltip("Add a new inventory item."),
             actionButton(ns("edit"), "Edit Item", icon = icon("pen-to-square"), style = "border: 0;") |>
@@ -84,7 +86,7 @@ module_inventory_server <- function(input, output, session, data) {
   )
 
   # add/edit dialog ========
-  dialog_inputs <- reactive({
+  add_edit_dialog_inputs <- reactive({
     req(get_inventory())
     log_debug(ns = ns, "generating dialog inputs")
     tagList(
@@ -100,11 +102,11 @@ module_inventory_server <- function(input, output, session, data) {
     )
   })
 
-  create_dialog <- function(title) {
+  create_add_edit_dialog <- function(title) {
     modalDialog(
       size = "s",
       title = title,
-      dialog_inputs(),
+      add_edit_dialog_inputs(),
       footer = tagList(
         actionButton(ns("save"), "Save"),
         modalButton("Cancel")
@@ -123,7 +125,7 @@ module_inventory_server <- function(input, output, session, data) {
     updateTextInput(inputId = "unit_size", placeholder = "Enter unit size")
     updateTextInput(inputId = "url", placeholder = "Enter web address for item")
     updateTextInput(inputId = "details", placeholder = "Enter details and notes")
-    showModal(create_dialog("Add new inventory item"))
+    showModal(create_add_edit_dialog("Add new inventory item"))
   })
 
   # edit ===========
@@ -145,7 +147,7 @@ module_inventory_server <- function(input, output, session, data) {
     updateTextInput(inputId = "unit_size", value = item$unit_size)
     updateTextInput(inputId = "url", value = item$url)
     updateTextInput(inputId = "details", value = item$details)
-    showModal(create_dialog("Edit inventory item"))
+    showModal(create_add_edit_dialog("Edit inventory item"))
   })
 
   # check inputs ====
@@ -160,7 +162,7 @@ module_inventory_server <- function(input, output, session, data) {
     return(ok)
   }
 
-  # save =====
+  # item save =====
   observeEvent(input$save, {
 
     # save if inputs are good
@@ -199,6 +201,111 @@ module_inventory_server <- function(input, output, session, data) {
     }
   })
 
+  # request dialog ======
+
+  get_grants_for_request <- reactive({
+    req(data$grants$get_data())
+    grants <- data$grants$get_data() |>
+      dplyr::filter(.data$group %in% data$get_active_user_data()$groups) |>
+      dplyr::filter(.data$status == "active") |>
+      dplyr::select("name", "grant_id") |>
+      dplyr::arrange(tolower(.data$name)) |>
+      tibble::deframe()
+    c(c("Select grant" = ""), grants)
+  })
+
+  make_request_item_ui <- function(item_id, item_name) {
+    tagList(
+      h5(item_name),
+      numericInput(
+        ns(paste0("quantity_", item_id)),
+        label = NULL,
+        min = 0, step = 1, value = 1
+      )
+    )
+  }
+
+  create_request_dialog <- function(items) {
+    modalDialog(
+      size = "m",
+      title = "Create request",
+      selectInput(ns("grant_id"), "Grant", choices = get_grants_for_request()) |>
+        add_tooltip("Select which grant/acount this request is for."),
+      textAreaInput(ns("notes"), "Notes") |> add_tooltip("Add notes and special instructions for ordering/receiving this item."),
+      tags$hr(),
+      h5(tags$strong("Quantities")),
+      purrr::map2(items$item_id, items$name, make_request_item_ui),
+      footer = tagList(
+        actionButton(ns("save_request"), "Request"),
+        modalButton("Cancel")
+      )
+    )
+  }
+
+  observe({
+    # request available only when at least 1 record selected
+    toggle <- nrow(inventory$get_selected_items()) > 0L
+    shinyjs::toggleState("request", condition = toggle)
+  })
+
+  observeEvent(input$request, {
+    log_info(ns = ns, "loading request screen")
+    dlg <- create_request_dialog(inventory$get_selected_items())
+    updateSelectInput(inputId = "grant", selected = "")
+    showModal(dlg)
+  })
+
+  # request save =====
+
+  check_request_inputs <- function() {
+    log_info(ns = ns, "checking request inputs")
+    ok <- TRUE
+    # input checks
+    if (nchar(input$grant_id) == 0) {
+      log_warning(ns = ns, "no grant selected", user_msg = "Grant: please select the grant this order should be placed on")
+      ok <- FALSE
+    }
+    return(ok)
+  }
+
+  observeEvent(input$save_request, {
+
+    # save if inputs are good
+    if (check_request_inputs()) {
+
+      # disable inputs while saving
+      c("grant_id", "note", "save_request") |> purrr::walk(shinyjs::disable)
+
+      # FIXME: maybe instead of allowing doubles here
+      # includes this in the checks
+      ids <- inventory$get_selected_items()$item_id
+      quantities <- purrr::map_dbl(
+        ids,
+        ~input[[paste0("quantity_", .x)]]
+      ) |> as.integer()
+
+      # add new orders
+      if (any(quantities > 0L)) {
+        log_info(ns = ns, "adding ", sum(quantities > 0L), " order requests")
+        data$orders$start_add()
+        for (i in seq_along(ids)) {
+          if(quantities[i] > 0L) {
+            data$orders$update(
+              item_id = ids[i],
+              quantity = quantities[i],
+              grant_id = as.integer(input$grant_id),
+              notes = input$notes,
+              requested_by = data$get_active_user_data()$user_id,
+              requested_on = lubridate::now()
+            )
+          }
+        }
+      }
+
+      # commit changes
+      if (data$orders$commit()) removeModal()
+    }
+  })
 
 }
 

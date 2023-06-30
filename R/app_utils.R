@@ -121,6 +121,11 @@ spaces <- function(n) {
   HTML(rep("&nbsp;", n))
 }
 
+# adding an inline UI item
+inline <- function(...) {
+  div(style = "display: inline-block;", ...)
+}
+
 # convenience function to add tooltip
 add_tooltip <- function(widget, message, size = "medium") {
   prompter::add_prompt(widget, message = message, size = size)

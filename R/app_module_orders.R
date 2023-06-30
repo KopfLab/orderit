@@ -17,6 +17,8 @@ module_orders_server <- function(input, output, session, data) {
             icon("code-pull-request"), "Requested",
             div(
               style = "position: absolute; right: 20px; top: 5px;",
+              actionButton(ns("mark_ordered"), "Mark ordered", icon = icon("truck"), style = "border: 0;") |>
+                add_tooltip("Mark selected item(s) as ordered."),
               module_selector_table_columns_button(ns("requested_table"), border = FALSE),
               module_selector_table_search_button(ns("requested_table"), border = FALSE)
             )
@@ -42,6 +44,8 @@ module_orders_server <- function(input, output, session, data) {
             icon("truck"), "Ordered",
             div(
               style = "position: absolute; right: 20px; top: 5px;",
+              actionButton(ns("mark_received"), "Mark received", icon = icon("check"), style = "border: 0;") |>
+                add_tooltip("Mark selected item(s) as received."),
               module_selector_table_columns_button(ns("ordered_table"), border = FALSE),
               module_selector_table_search_button(ns("ordered_table"), border = FALSE)
             )
@@ -120,49 +124,77 @@ module_orders_server <- function(input, output, session, data) {
   })
 
   get_requested <- reactive({
-    get_orders() |>
+    requested <-
+      get_orders() |>
       dplyr::filter(is.na(.data$ordered_on)) |>
-      dplyr::arrange(dplyr::desc(.data$requested_on)) |>
+      dplyr::arrange(dplyr::desc(.data$requested_on), .data$order_id) |>
       # bring in orderer
       dplyr::left_join(
         data$users$get_data() |> dplyr::rename_with(~paste0("orderer_", .x), dplyr::everything()),
         by = c("orderer_user_id" = "orderer_user_id")
-      ) |>
-      dplyr::mutate(
-        orderer = paste(orderer_first_name %then% "", orderer_last_name %then% "") |>
-          factor()
       )
+
+    # orderer
+    if (nrow(requested) > 0) {
+      requested <- requested |>
+        dplyr::mutate(
+          orderer = paste(orderer_first_name %then% "", orderer_last_name %then% "") |>
+            factor()
+        )
+    } else {
+      requested <- requested |>
+        dplyr::mutate(orderer = character())
+    }
+    return(requested)
   })
 
   get_ordered <- reactive({
-    get_orders() |>
+    ordered <- get_orders() |>
       dplyr::filter(!is.na(.data$ordered_on) & is.na(.data$received_on)) |>
-      dplyr::arrange(dplyr::desc(.data$ordered_on)) |>
-      dplyr::arrange(dplyr::desc(.data$requested_on)) |>
+      dplyr::arrange(dplyr::desc(.data$ordered_on), .data$order_id) |>
       # bring in ordered_by
       dplyr::left_join(
         data$users$get_data() |> dplyr::rename_with(~paste0("ordered_by_", .x), dplyr::everything()),
         by = c("ordered_by" = "ordered_by_user_id")
-      ) |>
-      dplyr::mutate(
-        ordered_by = paste(ordered_by_first_name %then% "", ordered_by_last_name %then% "") |>
-          factor()
       )
+
+    # ordered by
+    if (nrow(ordered) > 0) {
+      ordered <- ordered |>
+        dplyr::mutate(
+          ordered_by = paste(ordered_by_first_name %then% "", ordered_by_last_name %then% "") |>
+            factor()
+        )
+    } else {
+      ordered <- ordered |>
+        dplyr::mutate(ordered_by = character())
+    }
+    return(ordered)
+
   })
 
   get_received <- reactive({
-    get_orders() |>
+    received <- get_orders() |>
       dplyr::filter(!is.na(.data$received_on)) |>
-      dplyr::arrange(dplyr::desc(.data$received_on)) |>
+      dplyr::arrange(dplyr::desc(.data$received_on), .data$order_id) |>
       # bring in received by
       dplyr::left_join(
         data$users$get_data() |> dplyr::rename_with(~paste0("received_by_", .x), dplyr::everything()),
         by = c("received_by" = "received_by_user_id")
-      ) |>
-      dplyr::mutate(
-        received_by = paste(received_by_first_name %then% "", received_by_last_name %then% "") |>
-          factor()
       )
+
+    # received by
+    if (nrow(received) > 0) {
+      received <- received |>
+        dplyr::mutate(
+          received_by = paste(received_by_first_name %then% "", received_by_last_name %then% "") |>
+            factor()
+        )
+    } else {
+      received <- received |>
+        dplyr::mutate(received_by = character())
+    }
+    return(received)
   })
 
   # requested data table ==============
@@ -262,6 +294,47 @@ module_orders_server <- function(input, output, session, data) {
     selection = "none",
     render_html = "Catalog #"
   )
+
+  # mark ordered =======
+
+  observe({
+    toggle <- nrow(requested$get_selected_items()) > 0L
+    shinyjs::toggleState("mark_ordered", condition = toggle)
+  })
+
+  observeEvent(input$mark_ordered, {
+    req(items <- requested$get_selected_items())
+    if (nrow(items) > 0L) {
+      log_info(ns = ns, "marking ", nrow(items), " requests as ordered")
+      data$orders$start_edit(id = items$order_id)
+      data$orders$update(
+        ordered_by = data$get_active_user_data()$user_id,
+        ordered_on = lubridate::now()
+      )
+      data$orders$commit()
+    }
+  })
+
+
+  # mark received ======
+
+  observe({
+    toggle <- nrow(ordered$get_selected_items()) > 0L
+    shinyjs::toggleState("mark_received", condition = toggle)
+  })
+
+  observeEvent(input$mark_received, {
+    req(items <- ordered$get_selected_items())
+    if (nrow(items) > 0L) {
+      log_info(ns = ns, "marking ", nrow(items), " requests as received")
+      data$orders$start_edit(id = items$order_id)
+      data$orders$update(
+        received_by = data$get_active_user_data()$user_id,
+        received_on = lubridate::now()
+      )
+      data$orders$commit()
+    }
+  })
 
 }
 
