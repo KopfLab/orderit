@@ -45,6 +45,8 @@ ui <- function(timezone = NULL) {
         HTML(paste(
           # navbar download button
           ".skin-yellow .sidebar .shiny-download-link { color: #444; margin-left: 15px; margin-top: 5px; }",
+          ".sidebar-menu li a { font-size: 16px; }",
+          ".treeview-menu li a { font-size: 16px; }",
           # error validation output
           ".shiny-output-error-validation { color: red; font-size: 20px; padding: 20px; }", # do we want this red?
           ".shiny-output-error-info { color: black; font-size: 20px; padding: 20px; }",
