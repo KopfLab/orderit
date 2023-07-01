@@ -14,7 +14,7 @@ module_orders_server <- function(input, output, session, data) {
         "Requested",
         shinydashboard::box(
           title = span(
-            icon("code-pull-request"), "Requested",
+            icon("cart-shopping"), "Requested",
             div(
               style = "position: absolute; right: 20px; top: 5px;",
               actionButton(ns("mark_ordered"), "Mark ordered", icon = icon("truck"), style = "border: 0;") |>

@@ -11,10 +11,10 @@ module_inventory_server <- function(input, output, session, data) {
     tagList(
       shinydashboard::box(
         title = span(
-          icon("flask-vial"), "Inventory",
+          icon("flask"), "Inventory",
           div(
             style = "position: absolute; right: 10px; top: 5px;",
-            actionButton(ns("request"), "Request", icon = icon("code-pull-request"), style = "border: 0;") |>
+            actionButton(ns("request"), "Request", icon = icon("cart-shopping"), style = "border: 0;") |>
               add_tooltip("Request selected item(s)."),
             actionButton(ns("add"), "New Item", icon = icon("plus"), style = "border: 0;") |>
               add_tooltip("Add a new inventory item."),

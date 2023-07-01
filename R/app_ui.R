@@ -25,11 +25,11 @@ ui <- function(timezone = NULL) {
         if (!is.null(timezone)) h5(timezone, align = "center"),
         shinydashboard::menuItem(
           "Orders", icon = icon("bolt"), startExpanded = TRUE,
-          shinydashboard::menuSubItem("Requests", icon = icon("code-pull-request"), tabName = "requested"),
+          shinydashboard::menuSubItem("Requests", icon = icon("cart-shopping"), tabName = "requested"),
           shinydashboard::menuSubItem("Ordered", icon = icon("truck"), tabName = "ordered"),
           shinydashboard::menuSubItem("Received", icon = icon("check"), tabName = "received")
         ),
-        shinydashboard::menuItem("Inventory", tabName = "inventory", icon = icon("flask-vial")),
+        shinydashboard::menuItem("Inventory", tabName = "inventory", icon = icon("flask")),
         shinydashboard::menuItem("Grants", tabName = "grants", icon = icon("coins"))
       )
     ) |> shinyjs::hidden(),
