@@ -117,6 +117,7 @@ module_orders_server <- function(input, output, session, data) {
         # make factors for advanced search
         dplyr::mutate(
           vendor = factor(vendor),
+          item_status = factor(item_status, levels = names(get_item_status_levels())),
           requester = paste(requester_first_name %then% "", requester_last_name %then% "") |> factor(),
           grant_name = factor(grant_name)
         )
@@ -229,7 +230,14 @@ module_orders_server <- function(input, output, session, data) {
     selection = "multiple",
     render_html = "Catalog #",
     formatting_calls = list(
-      list(func = DT::formatCurrency, columns = "Total")
+      list(func = DT::formatCurrency, columns = "Total"),
+      list(
+        func = DT::formatStyle, columns = "Status",
+        backgroundColor = DT::styleEqual(
+          get_item_status_levels() |> names(),
+          get_item_status_levels() |> as.character()
+        )
+      )
     )
   )
 

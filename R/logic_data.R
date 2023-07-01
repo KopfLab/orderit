@@ -307,3 +307,13 @@ add_data <- function(df, ..., .list = NULL) {
 
   return(df)
 }
+
+# item status levels =====
+
+get_item_status_levels <- function() {
+  c(
+    "current" = "lightgreen",
+    "needs confirmation" = "lightyellow",
+    "outdated" = "lightpink"
+  )
+}

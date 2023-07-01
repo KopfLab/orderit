@@ -43,8 +43,8 @@ module_inventory_server <- function(input, output, session, data) {
       data$inventory$get_data() |>
         # bring in added_by name
         dplyr::left_join(data$users$get_data(), by = c("added_by" = "user_id")) |>
-        # make vendor a factor
-        dplyr::mutate(vendor = factor(vendor)) |>
+        # make vendor and status factors
+        dplyr::mutate(vendor = factor(vendor), status = factor(status, levels = names(get_item_status_levels()))) |>
         # sort by name
         dplyr::arrange(tolower(.data$name))
     )
@@ -81,7 +81,14 @@ module_inventory_server <- function(input, output, session, data) {
     selection = "multiple",
     render_html = "Catalog #",
     formatting_calls = list(
-      list(func = DT::formatCurrency, columns = "Unit price")
+      list(func = DT::formatCurrency, columns = "Unit price"),
+      list(
+        func = DT::formatStyle, columns = "Status",
+        backgroundColor = DT::styleEqual(
+          get_item_status_levels() |> names(),
+          get_item_status_levels() |> as.character()
+        )
+      )
     )
   )
 
@@ -91,8 +98,8 @@ module_inventory_server <- function(input, output, session, data) {
     log_debug(ns = ns, "generating dialog inputs")
     tagList(
       textInput(ns("name"), "Name"),
-      selectInput(ns("status"), "Status", choices = c("new", "ok", "old")) |>
-        add_tooltip("Indicate whether this item has been confirmed to be the right one ('ok'), is a new one that needs confirmation ('new'), or shouldn't be ordered anymore ('old')"),
+      selectInput(ns("status"), "Status", choices = get_inventory()$status |> levels()) |>
+        add_tooltip("Indicate whether this item needs confirmation, is current, or is outdated"),
       selectizeInput(ns("vendor"), "Vendor", choices = get_inventory()$vendor |> levels(), options = list(create = TRUE)),
       textInput(ns("catalog_nr"), "Catalog #"),
       numericInput(ns("unit_price"), "Unit price", value = 0, min = 0),
@@ -118,7 +125,7 @@ module_inventory_server <- function(input, output, session, data) {
   observeEvent(input$add, {
     data$inventory$start_add()
     updateTextInput(inputId = "name", placeholder = "Enter name of new item")
-    updateSelectInput(inputId = "status", selected = "new")
+    updateSelectInput(inputId = "status", selected = "needs confirmation")
     updateSelectInput(inputId = "vendor", selected = "")
     updateTextInput(inputId = "catalog_nr", placeholder = "Enter catalog # for new item")
     updateNumericInput(inputId = "unit_price", value = NA)
