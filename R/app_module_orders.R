@@ -224,8 +224,9 @@ module_orders_server <- function(input, output, session, data) {
         ifelse(
           !is.na(url) & nchar(url) > 0,
           sprintf(
-            "<a href = '%s' target = '_blank'>%s</a>",
-            gsub("^(http(s?)://)?", "https://", url), htmltools::htmlEscape(catalog_nr)
+            "<a href = '%s' target = '_blank'>%s</a> <a href = '%s&Keywords=%s' target = '_blank'><i class=\"fa-solid fa-cart-shopping\"></i></a>",
+            gsub("^(http(s?)://)?", "https://", url), htmltools::htmlEscape(catalog_nr),
+            get_marketplace_url(), htmltools::htmlEscape(catalog_nr)
           ),
           htmltools::htmlEscape(catalog_nr)
         ),

@@ -330,3 +330,9 @@ get_item_status_levels <- function() {
     "outdated" = "lightpink"
   )
 }
+
+# markeplace url =====
+
+get_marketplace_url <- function() {
+  "https://solutions.sciquest.com/apps/Router/Home?ParamAction=Search&IsInitialSimpleSearch=true&SourceSimpleSearch=true&VerticalId=0"
+}
