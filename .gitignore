@@ -49,6 +49,7 @@ vignettes/**/*.pdf
 # Auxiliary package files
 tmp/
 docs/
+local_data.xlsx
 
 # Pkgdown
 pkgdown/**
