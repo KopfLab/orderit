@@ -17,9 +17,15 @@ module_orders_server <- function(input, output, session, data) {
             icon("cart-shopping"), "Requested",
             div(
               style = "position: absolute; right: 20px; top: 5px;",
-              actionButton(ns("mark_ordered"), "Mark ordered", icon = icon("truck"), style = "border: 0;") |>
+              if (data$is_active_user_admin())
+                actionButton(ns("mark_ordered"), "Mark ordered", icon = icon("truck"), style = "border: 0;") |>
                 add_tooltip("Mark selected item(s) as ordered."),
-              module_selector_table_selection_buttons(ns("requested_table"), border = FALSE),
+              actionButton(ns("cancel_requested"), "Cancel request", icon = icon("xmark"), style = "border: 0;") |>
+                add_tooltip("Cancel the selected request."),
+              actionButton(ns("edit_requested"), "Edit request", icon = icon("pen"), style = "border: 0;") |>
+                add_tooltip("Edit the selected request."),
+              if (data$is_active_user_admin())
+                module_selector_table_selection_buttons(ns("requested_table"), border = FALSE),
               module_selector_table_columns_button(ns("requested_table"), border = FALSE),
               module_selector_table_search_button(ns("requested_table"), border = FALSE)
             )
@@ -47,7 +53,11 @@ module_orders_server <- function(input, output, session, data) {
               style = "position: absolute; right: 20px; top: 5px;",
               actionButton(ns("mark_received"), "Mark received", icon = icon("check"), style = "border: 0;") |>
                 add_tooltip("Mark selected item(s) as received."),
-              module_selector_table_selection_buttons(ns("ordered_table"), border = FALSE),
+              if (data$is_active_user_admin())
+                actionButton(ns("cancel_ordered"), "Cancel order", icon = icon("xmark"), style = "border: 0;") |>
+                add_tooltip("Cancel the selected order."),
+              if (data$is_active_user_admin())
+                module_selector_table_selection_buttons(ns("ordered_table"), border = FALSE),
               module_selector_table_columns_button(ns("ordered_table"), border = FALSE),
               module_selector_table_search_button(ns("ordered_table"), border = FALSE)
             )
@@ -129,7 +139,7 @@ module_orders_server <- function(input, output, session, data) {
   get_requested <- reactive({
     requested <-
       get_orders() |>
-      dplyr::filter(is.na(.data$ordered_on)) |>
+      dplyr::filter(is.na(.data$ordered_on), is.na(.data$canceled_by)) |>
       dplyr::arrange(dplyr::desc(.data$requested_on), .data$order_id) |>
       # bring in orderer
       dplyr::left_join(
@@ -153,7 +163,7 @@ module_orders_server <- function(input, output, session, data) {
 
   get_ordered <- reactive({
     ordered <- get_orders() |>
-      dplyr::filter(!is.na(.data$ordered_on) & is.na(.data$received_on)) |>
+      dplyr::filter(!is.na(.data$ordered_on), is.na(.data$received_on), is.na(.data$canceled_by)) |>
       dplyr::arrange(dplyr::desc(.data$ordered_on), .data$order_id) |>
       # bring in ordered_by
       dplyr::left_join(
@@ -178,7 +188,7 @@ module_orders_server <- function(input, output, session, data) {
 
   get_received <- reactive({
     received <- get_orders() |>
-      dplyr::filter(!is.na(.data$received_on)) |>
+      dplyr::filter(!is.na(.data$received_on), is.na(.data$canceled_by)) |>
       dplyr::arrange(dplyr::desc(.data$received_on), .data$order_id) |>
       # bring in received by
       dplyr::left_join(
@@ -366,6 +376,51 @@ module_orders_server <- function(input, output, session, data) {
         received_by = data$get_active_user_data()$user_id,
         received_on = lubridate::now()
       )
+      data$orders$commit()
+    }
+  })
+
+  # cancel request ====
+
+  observe({
+    # only allow delete/edit for single items if admin or the user requested them
+    toggle <- nrow(requested$get_selected_items()) == 1L &&
+      (
+        data$is_active_user_admin() ||
+          requested$get_selected_items()[1, "requested_by"] == data$get_active_user_data()$user_id
+      )
+
+    shinyjs::toggleState("cancel_requested", condition = toggle)
+    shinyjs::toggleState("edit_requested", condition = toggle)
+  })
+
+  observeEvent(input$cancel_requested, {
+    req(items <- requested$get_selected_items())
+    if (nrow(items) > 0L) {
+      log_info(ns = ns, "canceling ", nrow(items), " request")
+      data$orders$start_edit(id = items$order_id)
+      data$orders$update(canceled_by = data$get_active_user_data()$user_id)
+      data$orders$commit()
+    }
+  })
+
+  # edit request ====
+
+
+  # cancel order ====
+
+  observe({
+    # only allow cancel for admins
+    toggle <- nrow(ordered$get_selected_items()) == 1L && data$is_active_user_admin()
+    shinyjs::toggleState("cancel_ordered", condition = toggle)
+  })
+
+  observeEvent(input$cancel_ordered, {
+    req(items <- ordered$get_selected_items())
+    if (nrow(items) > 0L) {
+      log_info(ns = ns, "canceling ", nrow(items), " order")
+      data$orders$start_edit(id = items$order_id)
+      data$orders$update(canceled_by = data$get_active_user_data()$user_id)
       data$orders$commit()
     }
   })

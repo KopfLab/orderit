@@ -67,7 +67,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     report_error = report_error,
     reload_data = reload_data,
     sheet = "orders",
-    cols = c("order_id" = "integer", "item_id" = "integer", "quantity" = "integer", "grant_id" = "integer", "notes", "requested_by", "requested_on" = "datetime", "approved_by", "approved_on" = "datetime", "ordered_by", "ordered_on" = "datetime", "received_by", "received_on" = "datetime")
+    cols = c("order_id" = "integer", "item_id" = "integer", "quantity" = "integer", "grant_id" = "integer", "notes", "requested_by", "requested_on" = "datetime", "approved_by", "approved_on" = "datetime", "ordered_by", "ordered_on" = "datetime", "received_by", "received_on" = "datetime", "canceled_by")
   )
 
   # (re-) load data event =====
@@ -157,6 +157,11 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     return(values$active_user_data)
   })
 
+  is_active_user_admin <- reactive({
+    validate(need(is_authenticated(), "user not authenticated"))
+    return(grepl("admin", values$active_user_data$role))
+  })
+
   # lock/unlock events ====
   observe({
     # triggers
@@ -212,6 +217,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     reload_data = reload_data,
     is_authenticated = is_authenticated,
     get_active_user_data = get_active_user_data,
+    is_active_user_admin = is_active_user_admin,
     users = users,
     grants = grants,
     inventory = inventory,
