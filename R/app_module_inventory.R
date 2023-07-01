@@ -18,7 +18,7 @@ module_inventory_server <- function(input, output, session, data) {
               add_tooltip("Request selected item(s)."),
             actionButton(ns("add"), "New Item", icon = icon("plus"), style = "border: 0;") |>
               add_tooltip("Add a new inventory item."),
-            actionButton(ns("edit"), "Edit Item", icon = icon("pen-to-square"), style = "border: 0;") |>
+            actionButton(ns("edit"), "Edit Item", icon = icon("pen"), style = "border: 0;") |>
               add_tooltip("Edit the selected inventory item."),
             module_selector_table_selection_buttons(ns("inventory_table"), border = FALSE),
             module_selector_table_columns_button(ns("inventory_table"), border = FALSE),

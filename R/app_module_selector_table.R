@@ -343,7 +343,7 @@ module_selector_table_selection_buttons <- function(id, border = TRUE) {
   ns <- NS(id)
   style <- if(!border) "border: 0;" else ""
   tagList(
-    actionButton(ns("select_all"), "Select all", icon = icon("square-check"), style = style) |>
+    actionButton(ns("select_all"), "Select all", icon = icon("square-minus"), style = style) |>
       add_tooltip("Select all items that match the current search in addition to those already selected."),
     spaces(1),
     actionButton(ns("deselect_all"), "Deselect", icon = icon("square"), style = style) |>

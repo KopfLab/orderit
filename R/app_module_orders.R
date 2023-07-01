@@ -19,6 +19,7 @@ module_orders_server <- function(input, output, session, data) {
               style = "position: absolute; right: 20px; top: 5px;",
               actionButton(ns("mark_ordered"), "Mark ordered", icon = icon("truck"), style = "border: 0;") |>
                 add_tooltip("Mark selected item(s) as ordered."),
+              module_selector_table_selection_buttons(ns("requested_table"), border = FALSE),
               module_selector_table_columns_button(ns("requested_table"), border = FALSE),
               module_selector_table_search_button(ns("requested_table"), border = FALSE)
             )
