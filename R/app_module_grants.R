@@ -19,9 +19,11 @@ module_grants_server <- function(input, output, session, data) {
           icon("coins"), "Grants",
           div(
             style = "position: absolute; right: 10px; top: 5px;",
-            actionButton(ns("add"), "New Grant", icon = icon("plus"), style = "border: 0;") |>
+            if (data$is_active_user_admin())
+              actionButton(ns("add"), "New Grant", icon = icon("plus"), style = "border: 0;") |>
               add_tooltip("Add a new grant."),
-            actionButton(ns("edit"), "Edit Grant", icon = icon("pen"), style = "border: 0;") |>
+            if (data$is_active_user_admin())
+              actionButton(ns("edit"), "Edit Grant", icon = icon("pen"), style = "border: 0;") |>
               add_tooltip("Edit the selected grant."),
             module_selector_table_columns_button(ns("grants_table"), border = FALSE),
             module_selector_table_search_button(ns("grants_table"), border = FALSE)
@@ -66,7 +68,8 @@ module_grants_server <- function(input, output, session, data) {
     get_data = get_grants,
     id_column = "grant_id",
     available_columns = list(
-      Grant = name, Status = status, `Speed Type` = identifier,
+      Grant = name, Status = status,
+      `Speed Type` = identifier,
       `Orderer` = paste(orderer_first_name %then% "", orderer_last_name %then% ""),
       `Needs approval` =
         dplyr::case_when(

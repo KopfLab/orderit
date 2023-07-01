@@ -222,17 +222,6 @@ module_inventory_server <- function(input, output, session, data) {
 
   # request dialog ======
 
-  get_grants_for_request <- reactive({
-    req(data$grants$get_data())
-    grants <- data$grants$get_data() |>
-      dplyr::filter(.data$group %in% data$get_active_user_data()$groups) |>
-      dplyr::filter(.data$status == "active") |>
-      dplyr::select("name", "grant_id") |>
-      dplyr::arrange(tolower(.data$name)) |>
-      tibble::deframe()
-    c(c("Select grant" = ""), grants)
-  })
-
   make_request_item_ui <- function(item_id, item_name) {
     tagList(
       h5(item_name),
@@ -244,11 +233,11 @@ module_inventory_server <- function(input, output, session, data) {
     )
   }
 
-  create_request_dialog <- function(items) {
+  create_request_dialog <- function(items, grants) {
     modalDialog(
       size = "m",
       title = "Create request",
-      selectInput(ns("grant_id"), "Grant", choices = get_grants_for_request()) |>
+      selectInput(ns("grant_id"), "Grant", choices = grants) |>
         add_tooltip("Select which grant/acount this request is for."),
       textAreaInput(ns("notes"), "Notes") |> add_tooltip("Add notes and special instructions for ordering/receiving this item."),
       tags$hr(),
@@ -268,8 +257,12 @@ module_inventory_server <- function(input, output, session, data) {
   })
 
   observeEvent(input$request, {
+    req(data$grants$get_data())
     log_info(ns = ns, "loading request screen")
-    dlg <- create_request_dialog(inventory$get_selected_items())
+    dlg <- create_request_dialog(
+      inventory$get_selected_items(),
+      get_grants_list(data$grants$get_data(), data$get_active_user_data())
+    )
     updateSelectInput(inputId = "grant", selected = "")
     showModal(dlg)
   })

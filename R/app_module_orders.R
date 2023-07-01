@@ -406,6 +406,52 @@ module_orders_server <- function(input, output, session, data) {
 
   # edit request ====
 
+  create_request_edit_dialog <- function(item, grants) {
+    modalDialog(
+      size = "s",
+      title = "Edit request",
+      selectInput(ns("grant_id"), "Grant", choices = grants, selected = item$grant_id),
+      textAreaInput(
+        ns("notes"), "Notes",
+        value = if (!is.na(item$notes)) item$notes else ""),
+      numericInput(ns("quantity"), "Quantity",
+        min = 0, step = 1, value = item$quantity
+      ),
+      footer = tagList(
+        actionButton(ns("save_request"), "Save"),
+        modalButton("Cancel")
+      )
+    )
+  }
+
+  observeEvent(input$edit_requested, {
+    req(data$grants$get_data())
+    log_info(ns = ns, "loading request edit screen")
+    dlg <- create_request_edit_dialog(
+      requested$get_selected_items()[1,],
+      get_grants_list(data$grants$get_data(), data$get_active_user_data())
+    )
+    showModal(dlg)
+  })
+
+  # save request ====
+
+  observeEvent(input$save_request, {
+    # disable inputs while saving
+    c("grant_id", "note", "quantity", "save_request") |>
+      purrr::walk(shinyjs::disable)
+
+    # update request
+    data$orders$start_edit(id = requested$get_selected_items()$order_id)
+    data$orders$update(
+      quantity = as.integer(input$quantity),
+      grant_id = as.integer(input$grant_id),
+      notes = input$notes
+    )
+
+    # commit changes
+    if (data$orders$commit()) removeModal()
+  })
 
   # cancel order ====
 

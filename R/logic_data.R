@@ -308,6 +308,19 @@ add_data <- function(df, ..., .list = NULL) {
   return(df)
 }
 
+# grants =======
+
+get_grants_list <- function(grants, active_user_data) {
+  grants <- grants |>
+    dplyr::filter(.data$group %in% active_user_data$groups) |>
+    dplyr::filter(.data$status == "active") |>
+    dplyr::select("name", "grant_id") |>
+    dplyr::arrange(tolower(.data$name)) |>
+    tibble::deframe()
+  grants <- c(c("Select grant" = ""), grants)
+  return(grants)
+}
+
 # item status levels =====
 
 get_item_status_levels <- function() {
