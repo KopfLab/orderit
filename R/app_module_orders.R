@@ -47,6 +47,7 @@ module_orders_server <- function(input, output, session, data) {
               style = "position: absolute; right: 20px; top: 5px;",
               actionButton(ns("mark_received"), "Mark received", icon = icon("check"), style = "border: 0;") |>
                 add_tooltip("Mark selected item(s) as received."),
+              module_selector_table_selection_buttons(ns("ordered_table"), border = FALSE),
               module_selector_table_columns_button(ns("ordered_table"), border = FALSE),
               module_selector_table_search_button(ns("ordered_table"), border = FALSE)
             )
@@ -242,6 +243,18 @@ module_orders_server <- function(input, output, session, data) {
     )
   )
 
+  # update number next to the mark ordered button
+  observeEvent(requested$get_selected_ids(), {
+    updateActionButton(
+      inputId = "mark_ordered",
+      label =
+        if (length(requested$get_selected_ids()) > 0)
+          sprintf("Mark ordered (%d)", length(requested$get_selected_ids()))
+      else
+        "Mark ordered"
+    )
+  }, ignoreNULL = FALSE)
+
   # ordered data table ===========
   ordered <- callModule(
     module_selector_table_server,
@@ -272,6 +285,18 @@ module_orders_server <- function(input, output, session, data) {
     selection = "multiple",
     render_html = "Catalog #"
   )
+
+  # update number next to the mark received button
+  observeEvent(ordered$get_selected_ids(), {
+    updateActionButton(
+      inputId = "mark_received",
+      label =
+        if (length(ordered$get_selected_ids()) > 0)
+          sprintf("Mark received (%d)", length(ordered$get_selected_ids()))
+      else
+        "Mark received"
+    )
+  }, ignoreNULL = FALSE)
 
   # received data table ==========
   received <- callModule(

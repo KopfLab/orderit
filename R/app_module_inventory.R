@@ -92,6 +92,18 @@ module_inventory_server <- function(input, output, session, data) {
     )
   )
 
+  # update number next to the request button
+  observeEvent(inventory$get_selected_ids(), {
+    updateActionButton(
+      inputId = "request",
+      label =
+        if (length(inventory$get_selected_ids()) > 0)
+          sprintf("Request (%d)", length(inventory$get_selected_ids()))
+        else
+          "Request"
+    )
+  }, ignoreNULL = FALSE)
+
   # add/edit dialog ========
   add_edit_dialog_inputs <- reactive({
     req(get_inventory())
