@@ -1,6 +1,6 @@
 Package: orderit
 Title: KopfLab Internal Package for Ordering
-Version: 0.2.4
+Version: 0.2.5
 Authors@R: 
     person("Sebastian", "Kopf", , "sebastian.kopf@colorado.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-2044-0201"))

@@ -202,6 +202,12 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
 
   # download data =====
 
+  observeEvent(is_authenticated(), {
+    allow_download <- !is.null(is_authenticated()) && is_authenticated() && is_active_user_admin()
+    shinyjs::toggleState("download", allow_download)
+    shinyjs::toggle("download", allow_download)
+  }, ignoreNULL = FALSE)
+
   output$download <- downloadHandler(
     filename = function() {
       lubridate::now() |> lubridate::with_tz(timezone) |>
@@ -236,5 +242,6 @@ module_data_reload_button <- function(id) {
 module_data_download_button <- function(id) {
   ns <- NS(id)
   downloadButton(ns("download"), "Backup") |>
+    shinyjs::hidden() |> shinyjs::disabled() |>
     add_tooltip("Download all data")
 }
