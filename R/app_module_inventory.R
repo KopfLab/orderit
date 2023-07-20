@@ -73,6 +73,7 @@ module_inventory_server <- function(input, output, session, data) {
       `Unit size` = unit_size,
       `Added by` = paste(first_name %then% "", last_name %then% ""),
       `Add timestamp` = as.character(added_on),
+      `Last price update` = as.character(last_price_update),
       `Details` = details
     ),
     visible_columns = 1:6, # through unit size
