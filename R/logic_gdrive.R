@@ -254,9 +254,11 @@ update_data <- function(df, .id, .idx = get_index_by_id(df, .id), ..., .list = N
     else updates <- enquos(...)
     for (i in seq_along(updates)) {
       old_value <- df[[names(updates)[i]]][.idx]
+      old_value_is_na <- is.na(old_value) || nchar(old_value) == 0
       new_value <- with(df[.idx,], eval_tidy(updates[[i]]))
+      new_value_is_na <- is.na(new_value) || nchar(new_value) == 0
       # check if this is a change
-      if (!identical(new_value, old_value)) {
+      if (!identical(new_value, old_value) && old_value_is_na != new_value_is_na) {
         df[[names(updates)[i]]][.idx] <- new_value
         df$.update[.idx] <- TRUE
       }
