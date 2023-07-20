@@ -126,11 +126,17 @@ module_orders_server <- function(input, output, session, data) {
           data$users$get_data() |> dplyr::rename_with(~paste0("requester_", .x), dplyr::everything()),
           by = c("requested_by" = "requester_user_id")
         ) |>
+        # bring in notified
+        dplyr::left_join(
+          data$users$get_data() |> dplyr::rename_with(~paste0("notify_", .x), dplyr::everything()),
+          by = c("notify_user" = "notify_user_id")
+        ) |>
         # make factors for advanced search
         dplyr::mutate(
           vendor = factor(vendor),
           item_status = factor(item_status, levels = names(get_item_status_levels())),
           requester = paste(requester_first_name %then% "", requester_last_name %then% "") |> factor(),
+          notify = paste(notify_first_name %then% "", notify_last_name %then% "") |> factor(),
           grant_name = factor(grant_name)
         )
     )
@@ -233,6 +239,7 @@ module_orders_server <- function(input, output, session, data) {
       Quantity = sprintf("%d x %s", quantity, unit_size),
       Total = quantity * unit_price,
       `Requested by` = requester,
+      `Notify` = notify,
       `Requested on` = as.character(requested_on),
       Grant = grant_name,
       `Orderer` = orderer,
@@ -286,6 +293,7 @@ module_orders_server <- function(input, output, session, data) {
         ),
       Quantity = sprintf("%d x %s", quantity, unit_size),
       `Requested by` = requester,
+      `Notify` = notify,
       `Requested on` = as.character(requested_on),
       `Ordered by` = ordered_by,
       `Ordered on` = as.character(ordered_on),
@@ -329,6 +337,7 @@ module_orders_server <- function(input, output, session, data) {
         ),
       Quantity = sprintf("%d x %s", quantity, unit_size),
       `Requested by` = requester,
+      `Notify` = notify,
       `Requested on` = as.character(requested_on),
       `Received by` = received_by,
       `Received on` = as.character(received_on),
