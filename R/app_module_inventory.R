@@ -71,12 +71,12 @@ module_inventory_server <- function(input, output, session, data) {
         ),
       `Unit price` = unit_price,
       `Unit size` = unit_size,
+      `Last price update` = as.character(last_price_update),
       `Added by` = paste(first_name %then% "", last_name %then% ""),
       `Add timestamp` = as.character(added_on),
-      `Last price update` = as.character(last_price_update),
       `Details` = details
     ),
-    visible_columns = 1:6, # through unit size
+    visible_columns = 1:7, # through price update
     allow_view_all = FALSE,
     initial_page_length = 10,
     selection = "multiple",
@@ -210,13 +210,23 @@ module_inventory_server <- function(input, output, session, data) {
           values,
           list(
             added_by = data$get_active_user_data()$user_id,
-            added_on = lubridate::now()
+            added_on = lubridate::now(),
+            last_price_update = if(!is.na(input$unit_price)) lubridate::now() else NA
           )
         )
       }
 
       # update data
       data$inventory$update(.list = values)
+
+      # check if the price has changed for an existing item
+      if (!data$inventory$is_add()) {
+        new_price <- data$inventory$has_value_changed(column = "unit_price")
+        if (new_price)
+          data$inventory$update(last_price_update = lubridate::now())
+      }
+
+      # commit
       if (data$inventory$commit()) removeModal()
     }
   })

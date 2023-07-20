@@ -240,6 +240,13 @@ get_index_by_id <- function(df, id) {
   return(idx)
 }
 
+# check if value is quasi identical (including NA checks)
+is_value_identical <- function(old_value, new_value) {
+  old_value_is_na <- is.na(old_value) || nchar(old_value) == 0
+  new_value_is_na <- is.na(new_value) || nchar(new_value) == 0
+  return(identical(new_value, old_value) || (all(old_value_is_na) && all(new_value_is_na)))
+}
+
 # update data by id or index
 update_data <- function(df, .id, .idx = get_index_by_id(df, .id), ..., .list = NULL) {
 
@@ -254,11 +261,10 @@ update_data <- function(df, .id, .idx = get_index_by_id(df, .id), ..., .list = N
     else updates <- enquos(...)
     for (i in seq_along(updates)) {
       old_value <- df[[names(updates)[i]]][.idx]
-      old_value_is_na <- is.na(old_value) || nchar(old_value) == 0
       new_value <- with(df[.idx,], eval_tidy(updates[[i]]))
-      new_value_is_na <- is.na(new_value) || nchar(new_value) == 0
       # check if this is a change
-      if (!identical(new_value, old_value) && old_value_is_na != new_value_is_na) {
+      # message(names(updates)[i], ": ", old_value, " / ", new_value, " --> ", is_value_identical(old_value, new_value))
+      if (!is_value_identical(old_value, new_value)) {
         df[[names(updates)[i]]][.idx] <- new_value
         df$.update[.idx] <- TRUE
       }

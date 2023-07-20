@@ -73,6 +73,10 @@ module_data_table_server <- function(
 
   # hash data
   hash_data <- function(data) {
+    if (is.null(data))
+      return(digest::digest(data))
+
+    # remove the other columns
     data |>
       dplyr::select(-".add", -".update", -".delete") |>
       digest::digest()
@@ -83,6 +87,11 @@ module_data_table_server <- function(
   get_data <- reactive({
     validate(need(values$data, "something went wrong retrieving the data"))
     return(values$data)
+  })
+
+  get_data_changed <- reactive({
+    validate(need(values$data_changed, "something went wrong retrieving the data"))
+    return(values$data_changed)
   })
 
   # data modifications =========
@@ -118,6 +127,21 @@ module_data_table_server <- function(
     }
   }
 
+  # data checks =========
+
+  # check whether specific value has changed
+  has_value_changed <- function(idx = values$edit_idx, column) {
+    if (!is_empty(idx)) {
+      # check
+      old_value <- values$data[idx, column]
+      new_value <- values$data_changed[idx, column]
+      return(!is_value_identical(old_value, new_value))
+    }
+    # when in add mode always has new value
+    return(TRUE)
+  }
+
+  # check whether there are any changes overall
   has_changes <- function() {
     n_changes <- values$data_changed |>
       dplyr::filter(.add | .update | .delete) |>
@@ -192,10 +216,12 @@ module_data_table_server <- function(
     reset = reset,
     read_data = read_data,
     get_data = get_data,
+    get_data_changed = get_data_changed,
     start_add = start_add,
     start_edit = start_edit,
     is_add = is_add,
     update = update,
+    has_value_changed = has_value_changed,
     has_changes = has_changes,
     commit = commit
   )

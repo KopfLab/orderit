@@ -103,6 +103,7 @@ module_orders_server <- function(input, output, session, data) {
       need(data$grants$get_data(), "something went wrong retrieving the data"),
       need(data$get_active_user_data(), "something went wrong retrieving the data")
     )
+
     return(
       data$orders$get_data() |>
         # bring in grant
@@ -143,6 +144,7 @@ module_orders_server <- function(input, output, session, data) {
   })
 
   get_requested <- reactive({
+    req(get_orders())
     requested <-
       get_orders() |>
       dplyr::filter(is.na(.data$ordered_on), is.na(.data$canceled_by)) |>
@@ -168,6 +170,7 @@ module_orders_server <- function(input, output, session, data) {
   })
 
   get_ordered <- reactive({
+    req(get_orders())
     ordered <- get_orders() |>
       dplyr::filter(!is.na(.data$ordered_on), is.na(.data$received_on), is.na(.data$canceled_by)) |>
       dplyr::arrange(dplyr::desc(.data$ordered_on), .data$order_id) |>
@@ -193,6 +196,7 @@ module_orders_server <- function(input, output, session, data) {
   })
 
   get_received <- reactive({
+    req(get_orders())
     received <- get_orders() |>
       dplyr::filter(!is.na(.data$received_on), is.na(.data$canceled_by)) |>
       dplyr::arrange(dplyr::desc(.data$received_on), .data$order_id) |>

@@ -31,7 +31,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     report_error = report_error,
     reload_data = reload_data,
     sheet = "users",
-    cols = c("user_id", "first_name", "last_name", "groups", "role")
+    cols = c("user_id", "first_name", "last_name", "groups", "role", "slack_channel")
   )
 
   # grants
@@ -55,7 +55,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     report_error = report_error,
     reload_data = reload_data,
     sheet = "inventory",
-    cols = c("item_id" = "integer", "status", "name", "vendor", "catalog_nr", "unit_price" = "double", "unit_size", "added_by", "added_on" = "datetime", "details", "url")
+    cols = c("item_id" = "integer", "status", "name", "vendor", "catalog_nr", "unit_price" = "double", "unit_size", "added_by", "added_on" = "datetime", "last_price_update" = "datetime", "details", "url")
   )
 
   # orders
@@ -67,7 +67,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
     report_error = report_error,
     reload_data = reload_data,
     sheet = "orders",
-    cols = c("order_id" = "integer", "item_id" = "integer", "quantity" = "integer", "grant_id" = "integer", "notes", "requested_by", "requested_on" = "datetime", "approved_by", "approved_on" = "datetime", "ordered_by", "ordered_on" = "datetime", "received_by", "received_on" = "datetime", "canceled_by")
+    cols = c("order_id" = "integer", "item_id" = "integer", "quantity" = "integer", "grant_id" = "integer", "notes", "urgent" = "logical", "requested_by", "notify_user", "requested_on" = "datetime", "approved_by", "approved_on" = "datetime", "ordered_by", "ordered_on" = "datetime", "received_by", "received_on" = "datetime", "canceled_by")
   )
 
   # (re-) load data event =====
@@ -125,14 +125,7 @@ module_data_server <- function(input, output, session, data_sheet_id, data_folde
              user_msg = sprintf("Authenticating '%s'", user_id))
     active_user_data <-
       tryCatch({
-        user <- users$get_data() |>
-          dplyr::filter(user_id == !!user_id)
-        if(nrow(user) < 1L) abort(paste0("user does not exist: ", user_id))
-        if(nrow(user) > 1L) abort(paste0("user_id is not unique: ", user_id))
-        user <- user |> as.list()
-        # split user groups
-        user$groups <- strsplit(user$groups, split = ",", fixed = TRUE)[[1]]
-        user
+        authenticate_user(users$get_data(), user_id)
       },
       error = function(e) {
         log_error(ns = ns, "authentication failed", user_msg = "Authentication failed", error = e)
