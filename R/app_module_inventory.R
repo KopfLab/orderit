@@ -251,6 +251,7 @@ module_inventory_server <- function(input, output, session, data) {
       selectInput(ns("grant_id"), "Grant", choices = grants) |>
         add_tooltip("Select which grant/acount this request is for."),
       textAreaInput(ns("notes"), "Notes") |> add_tooltip("Add notes and special instructions for ordering/receiving this item."),
+      checkboxInput(ns("urgent"), strong("Urgent"), value = FALSE) |> add_tooltip("Is this request really urgent?"),
       tags$hr(),
       h5(tags$strong("Quantities")),
       purrr::map2(items$item_id, items$name, make_request_item_ui),
@@ -297,7 +298,7 @@ module_inventory_server <- function(input, output, session, data) {
     if (check_request_inputs()) {
 
       # disable inputs while saving
-      c("grant_id", "note", "save_request") |> purrr::walk(shinyjs::disable)
+      c("grant_id", "note", "save_request", "urgent") |> purrr::walk(shinyjs::disable)
 
       # FIXME: maybe instead of allowing doubles here
       # includes this in the checks
@@ -317,6 +318,7 @@ module_inventory_server <- function(input, output, session, data) {
               item_id = ids[i],
               quantity = quantities[i],
               grant_id = as.integer(input$grant_id),
+              urgent = as.logical(input$urgent),
               notes = input$notes,
               requested_by = data$get_active_user_data()$user_id,
               requested_on = lubridate::now()

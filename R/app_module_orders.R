@@ -227,6 +227,7 @@ module_orders_server <- function(input, output, session, data) {
     get_data = get_requested,
     id_column = "order_id",
     available_columns = list(
+      Flag = ifelse(!is.na(urgent) & urgent, "urgent", ""),
       Item = item_name,
       Status = item_status,
       Vendor = vendor,
@@ -261,6 +262,12 @@ module_orders_server <- function(input, output, session, data) {
           get_item_status_levels() |> names(),
           get_item_status_levels() |> as.character()
         )
+      ),
+      list(
+        func = DT::formatStyle, columns = "Flag",
+        backgroundColor = DT::styleEqual(
+          c("urgent", "no"), c("orange", NA_character_)
+        )
       )
     )
   )
@@ -284,6 +291,7 @@ module_orders_server <- function(input, output, session, data) {
     get_data = get_ordered,
     id_column = "order_id",
     available_columns = list(
+      Flag = ifelse(!is.na(urgent) & urgent, "urgent", ""),
       Item = item_name,
       Vendor = vendor,
       `Catalog #` =
@@ -306,7 +314,15 @@ module_orders_server <- function(input, output, session, data) {
     allow_view_all = TRUE,
     initial_page_length = 10,
     selection = "multiple",
-    render_html = "Catalog #"
+    render_html = "Catalog #",
+    formatting_calls = list(
+      list(
+        func = DT::formatStyle, columns = "Flag",
+        backgroundColor = DT::styleEqual(
+          c("urgent", "no"), c("orange", NA_character_)
+        )
+      )
+    )
   )
 
   # update number next to the mark received button
@@ -328,6 +344,7 @@ module_orders_server <- function(input, output, session, data) {
     get_data = get_received,
     id_column = "order_id",
     available_columns = list(
+      Flag = ifelse(!is.na(urgent) & urgent, "urgent", ""),
       Item = item_name,
       Vendor = vendor,
       `Catalog #` =
@@ -350,7 +367,15 @@ module_orders_server <- function(input, output, session, data) {
     allow_view_all = FALSE,
     initial_page_length = 10,
     selection = "none",
-    render_html = "Catalog #"
+    render_html = "Catalog #",
+    formatting_calls = list(
+      list(
+        func = DT::formatStyle, columns = "Flag",
+        backgroundColor = DT::styleEqual(
+          c("urgent", "no"), c("orange", NA_character_)
+        )
+      )
+    )
   )
 
   # mark ordered =======
@@ -428,6 +453,7 @@ module_orders_server <- function(input, output, session, data) {
       textAreaInput(
         ns("notes"), "Notes",
         value = if (!is.na(item$notes)) item$notes else ""),
+      checkboxInput(ns("urgent"), strong("Urgent"), value = item$urgent),
       numericInput(ns("quantity"), "Quantity",
         min = 0, step = 1, value = item$quantity
       ),
@@ -452,12 +478,13 @@ module_orders_server <- function(input, output, session, data) {
 
   observeEvent(input$save_request, {
     # disable inputs while saving
-    c("grant_id", "note", "quantity", "save_request") |>
+    c("grant_id", "note", "urgent", "quantity", "save_request") |>
       purrr::walk(shinyjs::disable)
 
     # update request
     data$orders$start_edit(id = requested$get_selected_items()$order_id)
     data$orders$update(
+      urgent = as.logical(input$urgent),
       quantity = as.integer(input$quantity),
       grant_id = as.integer(input$grant_id),
       notes = input$notes
