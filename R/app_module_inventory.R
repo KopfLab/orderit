@@ -248,8 +248,7 @@ module_inventory_server <- function(input, output, session, data) {
     modalDialog(
       size = "m",
       title = "Create request",
-      selectInput(ns("grant_id"), "Grant", choices = grants) |>
-        add_tooltip("Select which grant/acount this request is for."),
+      selectInput(ns("grant_id"), "Grant", choices = grants),
       textAreaInput(ns("notes"), "Notes") |> add_tooltip("Add notes and special instructions for ordering/receiving this item."),
       checkboxInput(ns("urgent"), strong("Urgent"), value = FALSE) |> add_tooltip("Is this request really urgent?"),
       tags$hr(),
