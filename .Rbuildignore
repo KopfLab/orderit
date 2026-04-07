@@ -17,3 +17,4 @@
 ^Guardfile$
 ^Gemfile$
 ^orderit\.Rproj$
+dev/*

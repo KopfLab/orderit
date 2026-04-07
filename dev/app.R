@@ -1,0 +1,26 @@
+# DO NOT CHANGE #
+# file used for autoreaload during app development
+# to use: follow instructions in Rakefile
+devtools::load_all("..")
+
+# # write the private key into the key file from an environmental variable
+# lines <- readLines("gdrive_access_key.json")
+# lines <- gsub(
+#   "{{PRIVATE_KEY}}",
+#   Sys.getenv("ORDERING_GS_PRIVATE_KEY"),
+#   lines,
+#   fixed = TRUE
+# )
+# writeLines(lines, "gdrive_access_key.json")
+
+# example app
+start_app(
+  data_sheet_id = readLines("gdrive_file_key.txt")[1],
+  data_folder_id = readLines("gdrive_file_key.txt")[2],
+  gs_key_file = "gdrive_access_key.json",
+  user_id = "dev",
+  user_groups = "team-geom",
+  user_name = "Test",
+  timezone = Sys.timezone(),
+  options = list(port = 5555)
+)

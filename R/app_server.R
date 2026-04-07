@@ -1,10 +1,15 @@
 # server
-server <- function(data_sheet_id, data_folder_id, gs_key_file, timezone, user_id) {
-
-  shinyServer(function(input, output, session) {
-
+server <- function(
+  data_sheet_id,
+  data_folder_id,
+  gs_key_file,
+  timezone,
+  user_id
+) {
+  # server function
+  function(input, output, session) {
     log_info("\n\n========================================================")
-    log_info("starting orderit GUI", if(is_dev_mode()) " in DEV mode")
+    log_info("starting orderit GUI", if (is_dev_mode()) " in DEV mode")
 
     # navigation
     observeEvent(input$nav, log_debug("menu item selected: ", input$nav))
@@ -17,7 +22,8 @@ server <- function(data_sheet_id, data_folder_id, gs_key_file, timezone, user_id
 
     # data module
     data <- callModule(
-      module_data_server, id = "data",
+      module_data_server,
+      id = "data",
       data_sheet_id = data_sheet_id,
       data_folder_id = data_folder_id,
       gs_key_file = gs_key_file,
@@ -27,22 +33,23 @@ server <- function(data_sheet_id, data_folder_id, gs_key_file, timezone, user_id
 
     # grants module
     grants <- callModule(
-      module_grants_server, id = "grants",
+      module_grants_server,
+      id = "grants",
       data = data
     )
 
     # inventory module
     inventory <- callModule(
-      module_inventory_server, id = "inventory",
+      module_inventory_server,
+      id = "inventory",
       data = data
     )
 
     # orders module
     orders <- callModule(
-      module_orders_server, id = "orders",
+      module_orders_server,
+      id = "orders",
       data = data
     )
-
-  })
-
+  }
 }

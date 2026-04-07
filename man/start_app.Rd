@@ -8,11 +8,13 @@ start_app(
   data_sheet_id,
   data_folder_id,
   gs_key_file,
-  timezone = Sys.timezone(),
   user_id,
-  log = TRUE,
-  debug = FALSE,
-  port = 5000
+  user_groups,
+  user_name,
+  timezone,
+  options = list(),
+  uiPattern = "/",
+  enableBookmarking = "url"
 )
 }
 \arguments{
@@ -22,7 +24,23 @@ start_app(
 
 \item{gs_key_file}{in json format}
 
-\item{port}{the localhost port where the app will be accessible, e.g. https://127.0.0.1:5000 (note that if it is a port that is open in your firewall such as 3838, the GUI will be accessible on your local network at your IP address https://xxx.xxx.xxx.xxx:3838)}
+\item{timezone}{the timezone to user for datetime calculations}
+
+\item{options}{Named options that should be passed to the \code{runApp} call
+(these can be any of the following: "port", "launch.browser", "host", "quiet",
+"display.mode" and "test.mode"). You can also specify \code{width} and
+\code{height} parameters which provide a hint to the embedding environment
+about the ideal height/width for the app.}
+
+\item{uiPattern}{A regular expression that will be applied to each \code{GET}
+request to determine whether the \code{ui} should be used to handle the
+request. Note that the entire request path must match the regular
+expression in order for the match to be considered successful.}
+
+\item{enableBookmarking}{Can be one of \code{"url"}, \code{"server"}, or
+\code{"disable"}. The default value, \code{NULL}, will respect the setting from
+any previous calls to  \code{\link[shiny:enableBookmarking]{enableBookmarking()}}. See \code{\link[shiny:enableBookmarking]{enableBookmarking()}}
+for more information on bookmarking your app.}
 }
 \description{
 Run the user interface
