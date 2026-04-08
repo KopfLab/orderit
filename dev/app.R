@@ -4,14 +4,7 @@
 devtools::load_all("..")
 
 # # write the private key into the key file from an environmental variable
-# lines <- readLines("gdrive_access_key.json")
-# lines <- gsub(
-#   "{{PRIVATE_KEY}}",
-#   Sys.getenv("ORDERING_GS_PRIVATE_KEY"),
-#   lines,
-#   fixed = TRUE
-# )
-# writeLines(lines, "gdrive_access_key.json")
+# orderit:::fill_gdrive_private_key_placeholder(key = Sys.getenv("ORDERING_GS_PRIVATE_KEY"))
 
 # process a typical groups string
 groups <- "team-geom,admin" |>

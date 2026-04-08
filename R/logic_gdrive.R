@@ -381,3 +381,16 @@ add_data <- function(df, ..., .list = NULL) {
 
   return(df)
 }
+
+# helper function for gdrive private key
+fill_gdrive_private_key_placeholder <- function(
+  key,
+  file = "gdrive_access_key.json",
+  placeholder = "{{PRIVATE_KEY}}"
+) {
+  stopifnot(!missing(key) && rlang::is_scalar_character(key))
+  key <- gsub("\n", "\\\\n", key)
+  lines <- readLines(file, warn = FALSE)
+  lines <- gsub(placeholder, key, lines, fixed = TRUE)
+  writeLines(lines, file)
+}
