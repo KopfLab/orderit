@@ -34,7 +34,11 @@ module_inventory_server <- function(input, output, session, data) {
               style = "border: 0;"
             ) |>
               add_tooltip("Edit the selected inventory item."),
-            module_selector_table_selection_buttons(
+            module_selector_table_select_all_button(
+              ns("inventory_table"),
+              border = FALSE
+            ),
+            module_selector_table_deselect_all_button(
               ns("inventory_table"),
               border = FALSE
             ),
@@ -104,7 +108,9 @@ module_inventory_server <- function(input, output, session, data) {
     ),
     visible_columns = 1:7, # through price update
     allow_view_all = FALSE,
-    initial_page_length = 10,
+    initial_page_length = 50,
+    scrollX = TRUE,
+    scrollY = "max(200px, calc(100vh - 300px))", # account for size of header and devices table with the -x px
     selection = "multiple",
     render_html = "Catalog #",
     formatting_calls = list(

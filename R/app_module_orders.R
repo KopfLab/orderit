@@ -40,7 +40,13 @@ module_orders_server <- function(input, output, session, data) {
               ) |>
                 add_tooltip("Edit the selected request."),
               if (data$is_active_user_admin()) {
-                module_selector_table_selection_buttons(
+                module_selector_table_select_all_button(
+                  ns("requested_table"),
+                  border = FALSE
+                )
+              },
+              if (data$is_active_user_admin()) {
+                module_selector_table_deselect_all_button(
                   ns("requested_table"),
                   border = FALSE
                 )
@@ -96,7 +102,13 @@ module_orders_server <- function(input, output, session, data) {
                   add_tooltip("Cancel the selected order.")
               },
               if (data$is_active_user_admin()) {
-                module_selector_table_selection_buttons(
+                module_selector_table_select_all_button(
+                  ns("ordered_table"),
+                  border = FALSE
+                )
+              },
+              if (data$is_active_user_admin()) {
+                module_selector_table_deselect_all_button(
                   ns("ordered_table"),
                   border = FALSE
                 )
@@ -307,7 +319,9 @@ module_orders_server <- function(input, output, session, data) {
       Notes = notes
     ),
     allow_view_all = TRUE,
-    initial_page_length = 10,
+    initial_page_length = 50,
+    scrollX = TRUE,
+    scrollY = "max(200px, calc(100vh - 300px))", # account for size of header and devices table with the -x px
     selection = "multiple",
     render_html = "Catalog #",
     formatting_calls = list(
@@ -374,7 +388,9 @@ module_orders_server <- function(input, output, session, data) {
       Notes = notes
     ),
     allow_view_all = TRUE,
-    initial_page_length = 10,
+    initial_page_length = 50,
+    scrollX = TRUE,
+    scrollY = "max(200px, calc(100vh - 300px))", # account for size of header and devices table with the -x px
     selection = "multiple",
     render_html = "Catalog #",
     formatting_calls = list(
@@ -432,7 +448,9 @@ module_orders_server <- function(input, output, session, data) {
       Notes = notes
     ),
     allow_view_all = FALSE,
-    initial_page_length = 10,
+    initial_page_length = 50,
+    scrollX = TRUE,
+    scrollY = "max(200px, calc(100vh - 300px))", # account for size of header and devices table with the -x px
     selection = "none",
     render_html = "Catalog #",
     formatting_calls = list(
