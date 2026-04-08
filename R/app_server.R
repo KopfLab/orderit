@@ -43,7 +43,7 @@ server <- function(
       data = data
     )
 
-    # # orders module
+    # orders module
     orders <- callModule(
       module_orders_server,
       id = "orders",

@@ -193,7 +193,11 @@ module_grants_server <- function(input, output, session, data) {
   observeEvent(input$edit, {
     req(grant <- grants$get_selected_items())
     data$grants$start_edit(id = grant$grant_id)
-    updateTextInput(inputId = "group", value = grant$group)
+    updateSelectInput(
+      inputId = "group",
+      choices = grant$group,
+      selected = grant$group
+    )
     updateCheckboxInput(inputId = "status", value = grant$status == "active")
     updateTextInput(inputId = "name", value = grant$name)
     updateTextInput(inputId = "identifier", value = grant$identifier)

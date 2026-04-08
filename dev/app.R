@@ -14,7 +14,7 @@ devtools::load_all("..")
 # writeLines(lines, "gdrive_access_key.json")
 
 # process a typical groups string
-groups <- "team-geom,team-mcfarlin,admin" |>
+groups <- "team-geom,admin" |>
   stringr::str_split_1(stringr::fixed(",")) |>
   stringr::str_to_upper()
 is_admin <- "ADMIN" %in% groups
