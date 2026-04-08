@@ -21,8 +21,9 @@ authenticate_gdrive <- function(gs_key_file) {
   )
 
   # check token
-  if (is.null(token_obj))
+  if (is.null(token_obj)) {
     abort("google authentication failed with the provided key file")
+  }
 
   # run authentication
   googlesheets4::gs4_auth(token = token_obj)
@@ -30,11 +31,11 @@ authenticate_gdrive <- function(gs_key_file) {
 
   # check result
   if (
-    !(googledrive::drive_has_token() && identical(googledrive::drive_token()$auth_token$hash(), token_obj$hash()))
-  )  {
+    !(googledrive::drive_has_token() &&
+      identical(googledrive::drive_token()$auth_token$hash(), token_obj$hash()))
+  ) {
     abort("google authentication failed with the provided key file")
   }
-
 }
 
 # download a google sheet
@@ -43,15 +44,23 @@ download_gs <- function(gs_id, gs_key_file = "gdrive_access_key.json") {
   op <- options(googledrive_quiet = TRUE)
   on.exit(options(op))
   download_to <- paste0(tempfile(), ".xlsx")
-  result <- googledrive::drive_download(googledrive::as_id(gs_id), path = download_to)
-  if(!file.exists(download_to))
+  result <- googledrive::drive_download(
+    googledrive::as_id(gs_id),
+    path = download_to
+  )
+  if (!file.exists(download_to)) {
     abort("google sheet download failed")
+  }
   return(download_to)
 }
 
 # make actual changes in google spreadsheet
-commit_changes_to_gs <- function(df, gs_id, gs_sheet, gs_key_file = "gdrive_access_key.json") {
-
+commit_changes_to_gs <- function(
+  df,
+  gs_id,
+  gs_sheet,
+  gs_key_file = "gdrive_access_key.json"
+) {
   # safety checks
   stopifnot(
     "`df` required" = !missing(df) || !is.data.frame(df)
@@ -59,13 +68,19 @@ commit_changes_to_gs <- function(df, gs_id, gs_sheet, gs_key_file = "gdrive_acce
 
   # update
   if (any(df$.update & !df$.add)) {
-    df |> dplyr::filter(.data$.update & !.data$.add) |>
-      update_in_gs(gs_id = gs_id, gs_sheet = gs_sheet, gs_key_file = gs_key_file)
+    df |>
+      dplyr::filter(.data$.update & !.data$.add) |>
+      update_in_gs(
+        gs_id = gs_id,
+        gs_sheet = gs_sheet,
+        gs_key_file = gs_key_file
+      )
   }
 
   # add
   if (any(df$.add)) {
-    df |> dplyr::filter(.data$.add) |>
+    df |>
+      dplyr::filter(.data$.add) |>
       add_to_gs(gs_id = gs_id, gs_sheet = gs_sheet, gs_key_file = gs_key_file)
   }
 
@@ -78,12 +93,17 @@ commit_changes_to_gs <- function(df, gs_id, gs_sheet, gs_key_file = "gdrive_acce
 }
 
 # add rows to the google spreadsheet
-add_to_gs <- function(df_add, gs_id, gs_sheet, gs_key_file = "gdrive_access_key.json") {
-
+add_to_gs <- function(
+  df_add,
+  gs_id,
+  gs_sheet,
+  gs_key_file = "gdrive_access_key.json"
+) {
   # set formula for ID
   if (all(is.na(df_add[[1]]))) {
     df_add[[1]] <- googlesheets4::gs4_formula(
-      '=INDIRECT("R[-1]C[0]", FALSE) + 1')
+      '=INDIRECT("R[-1]C[0]", FALSE) + 1'
+    )
   } else if (any(is.na(df_add[[1]]))) {
     abort("ids for new records must either all be set explicitly or all NA")
   }
@@ -106,8 +126,12 @@ add_to_gs <- function(df_add, gs_id, gs_sheet, gs_key_file = "gdrive_access_key.
 }
 
 # update record in google spreadsheet
-update_in_gs <- function(df_update, gs_id, gs_sheet, gs_key_file = "gdrive_access_key.json") {
-
+update_in_gs <- function(
+  df_update,
+  gs_id,
+  gs_sheet,
+  gs_key_file = "gdrive_access_key.json"
+) {
   # remove add/edit/update flag columns
   rows <- df_update$.rowid
   df_update <- df_update |>
@@ -121,10 +145,13 @@ update_in_gs <- function(df_update, gs_id, gs_sheet, gs_key_file = "gdrive_acces
     # one row at a time because of the range issue
     tryCatch(
       googlesheets4::range_write(
-        gs_id, df_update[i, ], sheet = gs_sheet,
+        gs_id,
+        df_update[i, ],
+        sheet = gs_sheet,
         range = paste0("A", rows[i] + 1L),
         col_names = FALSE,
-        reformat = FALSE),
+        reformat = FALSE
+      ),
       error = function(e) {
         sprintf("updating %s data row %d failed", gs_sheet, rows[i]) |>
           abort(parent = e)
@@ -137,12 +164,20 @@ update_in_gs <- function(df_update, gs_id, gs_sheet, gs_key_file = "gdrive_acces
 
 # read excel sheet with column type checks
 # @param list of columns and their types, for undefined column types assumes "character" by default - note that ALL columns in the spreadsheet must be included here and the first column must be a unique ID (both will be checked and throw errors if not true)
-read_excel_sheet <- function(file_path, sheet, cols, timezone = Sys.timezone()) {
-
+read_excel_sheet <- function(
+  file_path,
+  sheet,
+  cols,
+  timezone = Sys.timezone()
+) {
   # parse cols param
   col_types <- unname(cols)
   col_names <- names(cols)
-  no_types = if (is.null(col_names)) seq_along(col_types) else nchar(col_names) == 0
+  no_types = if (is.null(col_names)) {
+    seq_along(col_types)
+  } else {
+    nchar(col_names) == 0
+  }
   no_types_vals <- col_types[no_types]
   col_types[no_types] <- "character"
   col_names[no_types] <- no_types_vals
@@ -166,22 +201,26 @@ read_excel_sheet <- function(file_path, sheet, cols, timezone = Sys.timezone()) 
 
   # warn about factors
   if (any(col_types == "factor")) {
-    warn("reading data in as 'factor' is not recommended if the data needs in this table needs to be editable - convert to factor when creating the selection table instead")
+    warn(
+      "reading data in as 'factor' is not recommended if the data needs in this table needs to be editable - convert to factor when creating the selection table instead"
+    )
   }
 
   # read excel sheet
   sheet_cols <- names(readxl::read_excel(file_path, sheet = sheet, n_max = 0))
   sheet_col_types <- excel_col_types[cols[sheet_cols]] |> unname()
   if (any(is.na(sheet_col_types))) {
-    sprintf("unexpected column(s) in spreadsheet: %s",
-            paste(sheet_cols[is.na(sheet_col_types)], collapse = ", ")) |>
+    sprintf(
+      "unexpected column(s) in spreadsheet: %s",
+      paste(sheet_cols[is.na(sheet_col_types)], collapse = ", ")
+    ) |>
       abort()
   }
   sheet_col_types[is.na(sheet_col_types)] <- "skip"
 
-
   data <- readxl::read_excel(
-    file_path, sheet = sheet,
+    file_path,
+    sheet = sheet,
     col_types = sheet_col_types
   )
 
@@ -196,8 +235,9 @@ read_excel_sheet <- function(file_path, sheet, cols, timezone = Sys.timezone()) 
   # parsers
   parsers <-
     purrr::map2(
-      names(cols), col_type_parsers[cols],
-      ~if (!is.null(.y)) {
+      names(cols),
+      col_type_parsers[cols],
+      ~ if (!is.null(.y)) {
         call2(unname(.y), sym(.x))
       } else {
         call2(expr(identity), sym(.x))
@@ -210,7 +250,9 @@ read_excel_sheet <- function(file_path, sheet, cols, timezone = Sys.timezone()) 
     dplyr::mutate(!!!parsers) |>
     dplyr::mutate(
       .rowid = dplyr::row_number(),
-      .add = FALSE, .update = FALSE, .delete = FALSE,
+      .add = FALSE,
+      .update = FALSE,
+      .delete = FALSE,
       .after = 1L
     )
 
@@ -220,7 +262,6 @@ read_excel_sheet <- function(file_path, sheet, cols, timezone = Sys.timezone()) 
 
 # get index by id
 get_index_by_id <- function(df, id) {
-
   # safety check
   stopifnot(
     "`df` required" = !missing(df) || !is.data.frame(df),
@@ -228,28 +269,44 @@ get_index_by_id <- function(df, id) {
   )
 
   # any ids provided?
-  if (is_empty(id)) return(c())
+  if (is_empty(id)) {
+    return(c())
+  }
 
   # find idx by id
-  idx <- purrr::map_int(id, ~{
-    idx <- which(df[[1]] == .x)
-    if (length(idx) < 1L) abort(sprintf("`id` not in the dataset: %s", .x))
-    else if (length(idx) > 1L) abort(sprintf("`id` not unique: %s", .x))
-    idx
-  })
+  idx <- purrr::map_int(
+    id,
+    ~ {
+      idx <- which(df[[1]] == .x)
+      if (length(idx) < 1L) {
+        abort(sprintf("`id` not in the dataset: %s", .x))
+      } else if (length(idx) > 1L) {
+        abort(sprintf("`id` not unique: %s", .x))
+      }
+      idx
+    }
+  )
   return(idx)
 }
 
 # check if value is quasi identical (including NA checks)
 is_value_identical <- function(old_value, new_value) {
-  old_value_is_na <- is.na(old_value) || nchar(old_value) == 0
-  new_value_is_na <- is.na(new_value) || nchar(new_value) == 0
-  return(identical(new_value, old_value) || (all(old_value_is_na) && all(new_value_is_na)))
+  old_value_is_na <- is.na(old_value) | !nzchar(old_value)
+  new_value_is_na <- is.na(new_value) | !nzchar(new_value)
+  return(
+    identical(new_value, old_value) ||
+      (all(old_value_is_na) && all(new_value_is_na))
+  )
 }
 
 # update data by id or index
-update_data <- function(df, .id, .idx = get_index_by_id(df, .id), ..., .list = NULL) {
-
+update_data <- function(
+  df,
+  .id,
+  .idx = get_index_by_id(df, .id),
+  ...,
+  .list = NULL
+) {
   # safety check
   stopifnot(
     "`df` required" = !missing(df) || !is.data.frame(df),
@@ -257,11 +314,14 @@ update_data <- function(df, .id, .idx = get_index_by_id(df, .id), ..., .list = N
   )
 
   if (length(.idx) > 0) {
-    if (!is.null(.list)) updates <- quos(!!!.list)
-    else updates <- enquos(...)
+    if (!is.null(.list)) {
+      updates <- quos(!!!.list)
+    } else {
+      updates <- enquos(...)
+    }
     for (i in seq_along(updates)) {
       old_value <- df[[names(updates)[i]]][.idx]
-      new_value <- with(df[.idx,], eval_tidy(updates[[i]]))
+      new_value <- with(df[.idx, ], eval_tidy(updates[[i]]))
       # check if this is a change
       # message(names(updates)[i], ": ", old_value, " / ", new_value, " --> ", is_value_identical(old_value, new_value))
       if (!is_value_identical(old_value, new_value)) {
@@ -306,11 +366,17 @@ add_data <- function(df, ..., .list = NULL) {
       )
     )
 
-  if (!is.null(.list)) adds <- quos(!!!.list)
-  else adds <- enquos(...)
+  if (!is.null(.list)) {
+    adds <- quos(!!!.list)
+  } else {
+    adds <- enquos(...)
+  }
 
   for (i in seq_along(adds)) {
-    df[.idx,] <- within(df[.idx,], assign(names(adds)[i], eval_tidy(adds[[i]])))
+    df[.idx, ] <- within(
+      df[.idx, ],
+      assign(names(adds)[i], eval_tidy(adds[[i]]))
+    )
   }
 
   return(df)

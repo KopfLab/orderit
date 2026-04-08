@@ -2,10 +2,17 @@
 # @param local_file (usually reactive) function retrieving local file
 # @param report_error (usually reactive) function reporting an error
 module_data_table_server <- function(
-    input, output, session, data_sheet_id, gs_key_file,
-    local_file, report_error, reload_data,
-    sheet, cols = dplyr::everything()) {
-
+  input,
+  output,
+  session,
+  data_sheet_id,
+  gs_key_file,
+  local_file,
+  report_error,
+  reload_data,
+  sheet,
+  cols = dplyr::everything()
+) {
   # namespace
   ns <- session$ns
 
@@ -32,34 +39,57 @@ module_data_table_server <- function(
   # read data ==========
 
   read_data <- function(timezone = Sys.timezone()) {
-
     # info
     log_debug(ns = ns, "reading data from xlsx file for sheet '", sheet, "'")
-    validate(need(file.exists(local_file()), "something went wrong retrieving the data"))
+    validate(need(
+      file.exists(local_file()),
+      "something went wrong retrieving the data"
+    ))
     sheets <- readxl::excel_sheets(local_file())
 
     # check if sheet exists
     if (!sheet %in% sheets) {
-      log_error(ns = ns, user_msg = "Cannot read data", error = sprintf("'%s' tab doesn't exist", sheet))
+      log_error(
+        ns = ns,
+        user_msg = "Cannot read data",
+        error = sprintf("'%s' tab doesn't exist", sheet)
+      )
       report_error()
       return(NULL)
     }
 
     # try to read data
-    data <- tryCatch({
-      data <- read_excel_sheet(local_file(), sheet = sheet, cols = {{ cols }}, timezone = timezone)
-      data
-    },
-    warning = function(w) {
-      log_error(ns = ns, "data reading failed", user_msg = "Data warning", error = w)
-      report_error()
-      NULL
-    },
-    error = function(e) {
-      log_error(ns = ns, "data reading failed", user_msg = "Missing data", error = e)
-      report_error()
-      NULL
-    })
+    data <- tryCatch(
+      {
+        data <- read_excel_sheet(
+          local_file(),
+          sheet = sheet,
+          cols = {{ cols }},
+          timezone = timezone
+        )
+        data
+      },
+      warning = function(w) {
+        log_error(
+          ns = ns,
+          "data reading failed",
+          user_msg = "Data warning",
+          error = w
+        )
+        report_error()
+        NULL
+      },
+      error = function(e) {
+        log_error(
+          ns = ns,
+          "data reading failed",
+          user_msg = "Missing data",
+          error = e
+        )
+        report_error()
+        NULL
+      }
+    )
 
     # hash
     hash <- data |> hash_data()
@@ -73,8 +103,9 @@ module_data_table_server <- function(
 
   # hash data
   hash_data <- function(data) {
-    if (is.null(data))
+    if (is.null(data)) {
       return(digest::digest(data))
+    }
 
     # remove the other columns
     data |>
@@ -90,7 +121,10 @@ module_data_table_server <- function(
   })
 
   get_data_changed <- reactive({
-    validate(need(values$data_changed, "something went wrong retrieving the data"))
+    validate(need(
+      values$data_changed,
+      "something went wrong retrieving the data"
+    ))
     return(values$data_changed)
   })
 
@@ -104,9 +138,12 @@ module_data_table_server <- function(
   }
 
   start_edit <- function(id, idx = get_index_by_id(values$data, id)) {
-    log_debug(ns = ns, "starting edit for ",
-              sprintf("id '%s' / idx %d", id, idx) |>
-                paste(collapse = ", "))
+    log_debug(
+      ns = ns,
+      "starting edit for ",
+      sprintf("id '%s' / idx %d", id, idx) |>
+        paste(collapse = ", ")
+    )
     values$edit_id <- id
     values$edit_idx <- idx
   }
@@ -150,7 +187,6 @@ module_data_table_server <- function(
   }
 
   commit <- function() {
-
     if (!has_changes()) {
       # no changes
       log_info(ns = ns, "no changes, nothing to update")
@@ -162,32 +198,44 @@ module_data_table_server <- function(
 
     # try to save data
     success <-
-      tryCatch({
-        commit_changes_to_gs(
-          df = values$data_changed,
-          gs_id = data_sheet_id,
-          gs_sheet = sheet,
-          gs_key_file = gs_key_file
-        )
-        TRUE
-      },
-      warning = function(w) {
-        log_error(ns = ns, "data writing failed", user_msg = "Encountered warning during data saving", error = w)
-        # unuscessful commit
-        FALSE
-      },
-      error = function(e) {
-        log_error(ns = ns, "data writing failed", user_msg = "Encountered error during data saving", error = e)
-        # unuscessful commit
-        FALSE
-      })
+      tryCatch(
+        {
+          commit_changes_to_gs(
+            df = values$data_changed,
+            gs_id = data_sheet_id,
+            gs_sheet = sheet,
+            gs_key_file = gs_key_file
+          )
+          TRUE
+        },
+        warning = function(w) {
+          log_error(
+            ns = ns,
+            "data writing failed",
+            user_msg = "Encountered warning during data saving",
+            error = w
+          )
+          # unuscessful commit
+          FALSE
+        },
+        error = function(e) {
+          log_error(
+            ns = ns,
+            "data writing failed",
+            user_msg = "Encountered error during data saving",
+            error = e
+          )
+          # unuscessful commit
+          FALSE
+        }
+      )
 
     # success
     if (success) {
-
       # enfore reload even for dev mode
-      if (is_dev_mode() && file.exists("local_data.xlsx"))
+      if (is_dev_mode() && file.exists("local_data.xlsx")) {
         file.remove("local_data.xlsx")
+      }
 
       if (!any(values$data_changed$.add)) {
         # nothing new added, just update values$data
@@ -204,7 +252,7 @@ module_data_table_server <- function(
       }
       # succcesful commit
       log_success(ns = ns, "data writing complete", user_msg = "Complete")
-    } else{
+    } else {
       # reset data changed
       values$data_changed <- value$data
     }
@@ -225,5 +273,4 @@ module_data_table_server <- function(
     has_changes = has_changes,
     commit = commit
   )
-
 }

@@ -11,6 +11,7 @@ start_app <- function(
   data_folder_id,
   gs_key_file,
   user_id,
+  user_is_admin,
   user_groups,
   user_name,
   timezone,
@@ -37,6 +38,8 @@ start_app <- function(
     "'timezone' required" = !missing(timezone) &&
       timezone %in% base::OlsonNames(),
     "'user_id' required" = !missing(user_id) && nchar(user_id) > 0,
+    "'user_is_admin' required" = !missing(user_is_admin) &&
+      rlang::is_scalar_logical(user_is_admin),
     "'user_groups' required" = !missing(user_groups) &&
       length(user_groups) > 0,
     "'user_name' required" = !missing(user_name) && nchar(user_name) > 0
@@ -49,7 +52,9 @@ start_app <- function(
     data_folder_id = data_folder_id,
     gs_key_file = gs_key_file,
     timezone = timezone,
-    user_id = user_id
+    user_id = user_id,
+    user_is_admin = user_is_admin,
+    user_groups = user_groups
   )
 
   # generate app

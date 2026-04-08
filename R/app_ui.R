@@ -63,8 +63,7 @@ ui <- function(user, timezone) {
             icon = icon("coins")
           )
         )
-      ) |>
-        shinyjs::hidden(),
+      ),
       module_data_reload_button("data"),
       module_data_download_button("data"),
       shinyjs::useShinyjs(), # enable shinyjs

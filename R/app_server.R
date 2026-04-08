@@ -4,7 +4,9 @@ server <- function(
   data_folder_id,
   gs_key_file,
   timezone,
-  user_id
+  user_id,
+  user_is_admin,
+  user_groups
 ) {
   # server function
   function(input, output, session) {
@@ -14,12 +16,6 @@ server <- function(
     # navigation
     observeEvent(input$nav, log_debug("menu item selected: ", input$nav))
 
-    # user info
-    output$user_first_name <- renderText({
-      req(data$is_authenticated())
-      data$get_active_user_data()$first_name
-    })
-
     # data module
     data <- callModule(
       module_data_server,
@@ -28,7 +24,9 @@ server <- function(
       data_folder_id = data_folder_id,
       gs_key_file = gs_key_file,
       timezone = timezone,
-      user_id = user_id
+      user_id = user_id,
+      user_is_admin = user_is_admin,
+      user_groups = user_groups
     )
 
     # grants module
@@ -45,7 +43,7 @@ server <- function(
       data = data
     )
 
-    # orders module
+    # # orders module
     orders <- callModule(
       module_orders_server,
       id = "orders",

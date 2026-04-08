@@ -9,6 +9,7 @@ start_app(
   data_folder_id,
   gs_key_file,
   user_id,
+  user_is_admin,
   user_groups,
   user_name,
   timezone,
