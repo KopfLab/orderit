@@ -12,16 +12,24 @@ module_selector_table_server(
   id_column,
   available_columns = list(dplyr::across(dplyr::everything(), identity)),
   visible_columns = c(),
+  container = NULL,
   allow_view_all = FALSE,
-  page_lengths = list(c(5, 10, 20, 50, 100, if (allow_view_all) -1), c("5", 10, "20",
+  page_lengths = list(c(5, 10, 20, 50, 100, if (allow_view_all) -1), c("5", "10", "20",
     "50", "100", if (allow_view_all) "All")),
   initial_page_length = page_lengths[[1]][1],
   dom = "fltip",
   filter = c("none", "bottom", "top"),
-  class = "cell-border stripe hover order-column",
+  ordering = TRUE,
+  class = "cell-border hover order-column",
+  escape_headers = TRUE,
   selection = c("multiple", "single", "none"),
+  auto_reselect = TRUE,
+  enable_dblclick = FALSE,
   render_html = c(),
-  formatting_calls = list()
+  formatting_calls = list(),
+  editable = FALSE,
+  extensions = list(),
+  ...
 )
 }
 \arguments{
@@ -33,6 +41,8 @@ module_selector_table_server(
 
 \item{visible_columns}{integer vector of columns (from what the available_columns selects) that are visible when the table loads (can be changed with the table_columns_button action) - if empty, all columns are visible}
 
+\item{container}{the container defining the table html layout (passed on to DT::datatable)}
+
 \item{allow_view_all}{whether to allow the "all" option in the page lengths, default is FALSE}
 
 \item{page_lengths}{page length options, first one will be selected}
@@ -43,13 +53,21 @@ module_selector_table_server(
 
 \item{filter}{whether to include column filters - note that this does NOT work for restoring after reload so use with caution if that's a desired feature}
 
+\item{ordering}{whether to allow column sorting, default TRUE}
+
 \item{class}{styling of table see class parameter for datatable}
+
+\item{escape_headers}{whether to HTML escape headers (turn off to have HTML rendered in the header columns)}
 
 \item{selection}{see parameter for data table (none, single, multiple)}
 
-\item{render_html}{list of columns which should NOT be html escaped (e.g. for links)}
+\item{auto_reselect}{whether to reselect selected rows automatically after reloads}
 
-\item{formatting_calls}{list of lists with function e.g. list(list(func = formatCurrency, columns = "x))}
+\item{render_html}{list of columns which should NOT be html escaped (e.g. for links), use dplyr::everything() to render everything}
+
+\item{formatting_calls}{list of lists with function and columns e.g. list(list(func = formatCurrency, columns = "x)) or a columns expressione.g. list(list(func = formatCurrencty, columns_expr = rlang::expr(matches("abc"))))}
+
+\item{...}{passed to options}
 }
 \description{
 Selector table server
