@@ -40,8 +40,7 @@ start_app <- function(
     "'user_id' required" = !missing(user_id) && nchar(user_id) > 0,
     "'user_is_admin' required" = !missing(user_is_admin) &&
       rlang::is_scalar_logical(user_is_admin),
-    "'user_groups' required" = !missing(user_groups) &&
-      length(user_groups) > 0,
+    "'user_groups' required" = !missing(user_groups),
     "'user_name' required" = !missing(user_name) && nchar(user_name) > 0
   )
 
